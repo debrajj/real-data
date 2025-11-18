@@ -51,13 +51,40 @@ async function handleThemeUpdate(shopDomain, themeId) {
       }
     }
     
+    // Add header and footer if they exist in settings_data
+    const globalSections = {};
+    if (settingsData.current?.sections) {
+      // Look for header and footer in global sections
+      Object.entries(settingsData.current.sections).forEach(([key, section]) => {
+        if (section.type === 'header' || section.type === 'footer' || 
+            section.type === 'announcement-bar' || key.includes('header') || key.includes('footer')) {
+          globalSections[key] = section;
+        }
+      });
+    }
+    
     // Merge all template sections into settings data (prioritize index/home page)
     settingsData.current = settingsData.current || {};
     settingsData.current.sections = {
+      ...globalSections,
       ...settingsData.current.sections,
       ...allSections.index
     };
-    settingsData.current.order = allOrders.index || [];
+    
+    // Create proper order with header first, then content, then footer
+    const headerKeys = Object.keys(globalSections).filter(k => 
+      globalSections[k].type === 'header' || k.includes('header') || globalSections[k].type === 'announcement-bar'
+    );
+    const footerKeys = Object.keys(globalSections).filter(k => 
+      globalSections[k].type === 'footer' || k.includes('footer')
+    );
+    const contentOrder = allOrders.index || [];
+    
+    settingsData.current.order = [
+      ...headerKeys,
+      ...contentOrder.filter(k => !headerKeys.includes(k) && !footerKeys.includes(k)),
+      ...footerKeys
+    ];
     
     // Store all page templates for reference
     settingsData.templates = allSections;

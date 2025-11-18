@@ -29,8 +29,20 @@ function ComponentRenderer({ components, theme }) {
     );
   }
 
+  // Check if header and footer exist
+  const hasHeader = components.some(c => c.type === 'header' || c.component === 'Header');
+  const hasFooter = components.some(c => c.type === 'footer' || c.component === 'Footer');
+
   return (
     <div className="component-renderer" style={getThemeStyles(theme)}>
+      {/* Always show header if not present */}
+      {!hasHeader && (
+        <div className="component-wrapper">
+          <div className="section-label">header</div>
+          <HeaderComponent />
+        </div>
+      )}
+      
       {components.map((component) => {
         if (component.props?.disabled) return null;
         
@@ -43,6 +55,14 @@ function ComponentRenderer({ components, theme }) {
           </div>
         );
       })}
+      
+      {/* Always show footer if not present */}
+      {!hasFooter && (
+        <div className="component-wrapper">
+          <div className="section-label">footer</div>
+          <FooterComponent />
+        </div>
+      )}
     </div>
   );
 }
