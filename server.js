@@ -1,0 +1,60 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
+const { connectDB } = require('./config/database');
+const webhookRoutes = require('./routes/webhooks');
+const sseRoutes = require('./routes/sse');
+const { initializeChangeStream } = require('./services/changeStream');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'https://realtime-apps-json.vercel.app',
+    /https:\/\/realtime-apps-json.*\.vercel\.app$/ // Allow all preview deployments
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(bodyParser.json());
+app.use(bodyParser.raw({ type: 'application/json' }));
+
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'Shopify Theme Sync Server Running' });
+});
+
+// Routes
+app.use('/webhooks', webhookRoutes);
+app.use('/api', sseRoutes);
+
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('✅ MongoDB connected');
+    
+    // Initialize change stream
+    initializeChangeStream();
+    console.log('✅ Change stream initialized');
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 Webhook endpoint: ${process.env.HOST}/webhooks/theme`);
+      console.log(`📊 SSE endpoint: ${process.env.HOST}/api/stream`);
+    });
+  } catch (error) {
+    console.error('❌ Server startup error:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

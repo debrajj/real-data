@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "buildCommand": "cd client && npm install && REACT_APP_API_URL=https://realtime-apps-json.vercel.app REACT_APP_SHOP_DOMAIN=testing-appx.myshopify.com npm run build",
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    },
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/webhooks/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "client/build/static/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|json|ico|png|jpg|jpeg|svg|gif))",
+      "dest": "client/build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client/build/index.html"
+    }
+  ],
+  "env": {
+    "SHOPIFY_API_KEY": "@shopify_api_key",
+    "SHOPIFY_API_SECRET": "@shopify_api_secret",
+    "SHOPIFY_ACCESS_TOKEN": "@shopify_access_token",
+    "SHOPIFY_SHOP_DOMAIN": "@shopify_shop_domain",
+    "MONGODB_URI": "@mongodb_uri",
+    "PORT": "3001"
+  },
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "https://realtime-apps-json.vercel.app",
+      "REACT_APP_SHOP_DOMAIN": "testing-appx.myshopify.com"
+    }
+  }
+}
