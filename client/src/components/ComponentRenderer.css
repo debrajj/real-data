@@ -3,17 +3,51 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
+  background: #f5f5f5;
 }
 
 .component-wrapper {
   background: white;
   overflow: hidden;
+  position: relative;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.section-label {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(102, 126, 234, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 10;
+  text-transform: capitalize;
 }
 
 .no-components {
   text-align: center;
-  padding: 4rem;
+  padding: 4rem 2rem;
   color: #999;
+}
+
+.empty-state {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 /* Header */
@@ -87,46 +121,59 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
-  min-height: 250px;
+  padding: 3rem 1rem;
+  min-height: 280px;
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.3);
 }
 
 .banner-content {
   text-align: center;
   color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  max-width: 90%;
 }
 
 .banner-content h2 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
 }
 
 .banner-content p {
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+  opacity: 0.95;
 }
 
 .banner-btn {
   background: white;
   color: #000;
   border: none;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.85rem;
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
   margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.banner-btn:hover {
+  transform: translateY(-2px);
 }
 
 /* Featured Collection */
 .featured-collection {
-  padding: 1.5rem 1rem;
+  padding: 2rem 1rem;
+  background: #ffffff;
 }
 
 .featured-collection h2 {
   text-align: center;
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .collection-grid {
@@ -137,23 +184,40 @@
 
 .product-card {
   text-align: center;
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.product-image {
+  background: #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  aspect-ratio: 1;
 }
 
 .product-card img {
   width: 100%;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
+  height: 100%;
+  object-fit: cover;
 }
 
 .product-card h3 {
   font-size: 0.9rem;
   margin: 0.5rem 0;
+  font-weight: 600;
 }
 
 .product-card .price {
   font-weight: bold;
   color: #667eea;
-  font-size: 0.85rem;
+  font-size: 1rem;
 }
 
 /* Multi Column */
@@ -370,18 +434,53 @@
 
 /* Default Component */
 .default-component {
-  padding: 1rem;
+  padding: 1.5rem 1rem;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.default-component h3 {
-  font-size: 1rem;
+.section-box {
+  text-align: center;
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  border: 2px dashed #667eea;
+}
+
+.section-icon {
+  font-size: 2rem;
   margin-bottom: 0.5rem;
 }
 
-.default-component pre {
-  background: #f5f5f5;
-  padding: 0.75rem;
-  border-radius: 6px;
-  overflow-x: auto;
+.section-box h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  color: #333;
+  text-transform: capitalize;
+}
+
+.section-preview {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.setting-item {
+  display: flex;
+  gap: 0.5rem;
   font-size: 0.75rem;
+  margin: 0.25rem 0;
+  justify-content: center;
+}
+
+.setting-key {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.setting-value {
+  color: #666;
 }

@@ -19,7 +19,14 @@ const componentMap = {
 
 function ComponentRenderer({ components, theme }) {
   if (!components || components.length === 0) {
-    return <div className="no-components">No components to display</div>;
+    return (
+      <div className="no-components">
+        <div className="empty-state">
+          <h3>No sections found</h3>
+          <p>Click "🔄 Manual Sync" to load theme sections</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -31,7 +38,8 @@ function ComponentRenderer({ components, theme }) {
         
         return (
           <div key={component.id} className="component-wrapper">
-            <Component {...component.props} blocks={component.blocks} />
+            <div className="section-label">{component.type || component.component}</div>
+            <Component {...component.props} blocks={component.blocks} type={component.type} />
           </div>
         );
       })}
@@ -250,10 +258,29 @@ function NewsletterComponent(props) {
 }
 
 function DefaultComponent(props) {
+  const { type, ...settings } = props;
+  const hasContent = Object.keys(settings).length > 0;
+  
   return (
     <div className="default-component">
-      <h3>Unknown Component</h3>
-      <pre>{JSON.stringify(props, null, 2)}</pre>
+      <div className="section-box">
+        <div className="section-icon">📦</div>
+        <h3>{type || 'Section'}</h3>
+        {hasContent && (
+          <div className="section-preview">
+            {Object.entries(settings).slice(0, 3).map(([key, value]) => (
+              <div key={key} className="setting-item">
+                <span className="setting-key">{key}:</span>
+                <span className="setting-value">
+                  {typeof value === 'string' && value.length > 30 
+                    ? value.substring(0, 30) + '...' 
+                    : String(value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
