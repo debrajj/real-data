@@ -189,21 +189,6 @@
   font-size: 1rem;
 }
 
-.panel-controls {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.version-badge {
-  background: #667eea;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .toggle-btn {
   background: #667eea;
   color: white;
@@ -249,32 +234,6 @@
   flex: 1;
 }
 
-.json-viewer {
-  overflow-y: auto;
-  padding: 1rem;
-  max-height: calc(100vh - 300px);
-}
-
-.json-section {
-  margin-bottom: 1.5rem;
-  background: #2d2d2d;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.json-section h4 {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  background: #3d3d3d;
-  color: #fff;
-  font-size: 0.9rem;
-  border-bottom: 2px solid #667eea;
-}
-
-.json-section:last-child {
-  margin-bottom: 0;
-}
-
 .extension-info h4 {
   margin: 0 0 0.25rem 0;
   color: #fff;
@@ -315,27 +274,13 @@
 .json-content {
   flex: 1;
   margin: 0;
-  padding: 1rem;
+  padding: 1.5rem;
   color: #d4d4d4;
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.6;
   overflow: auto;
   background: #1e1e1e;
-  max-height: 400px;
-}
-
-.json-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.json-content::-webkit-scrollbar-track {
-  background: #2d2d2d;
-}
-
-.json-content::-webkit-scrollbar-thumb {
-  background: #667eea;
-  border-radius: 4px;
 }
 
 .loading {
