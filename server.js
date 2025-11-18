@@ -19,6 +19,7 @@ app.use(cors({
     'http://localhost:3002',
     'https://realtime-apps-json.vercel.app',
     /https:\/\/realtime-apps-json.*\.vercel\.app$/, // Allow all Vercel preview deployments
+    'https://realx-dara.netlify.app',
     'https://691c7e1e7c957847997b8239--realx-dara.netlify.app',
     /https:\/\/.*--realx-dara\.netlify\.app$/ // Allow all Netlify preview deployments
   ],
