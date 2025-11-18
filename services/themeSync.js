@@ -36,20 +36,32 @@ async function handleThemeUpdate(shopDomain, themeId) {
       throw new Error('Failed to fetch settings_data.json');
     }
 
-    // Fetch index template (home page sections)
-    console.log('📥 Fetching index template...');
-    const indexTemplate = await shopifyAPI.getTemplateData(activeThemeId, 'index');
+    // Fetch all page templates
+    console.log('📥 Fetching page templates...');
+    const templates = ['index', 'product', 'collection', 'page', 'blog', 'article', 'cart'];
+    const allSections = {};
+    const allOrders = {};
     
-    // Merge template sections into settings data
-    if (indexTemplate && indexTemplate.sections) {
-      console.log('✅ Found sections in index template');
-      settingsData.current = settingsData.current || {};
-      settingsData.current.sections = {
-        ...settingsData.current.sections,
-        ...indexTemplate.sections
-      };
-      settingsData.current.order = indexTemplate.order || [];
+    for (const templateName of templates) {
+      const template = await shopifyAPI.getTemplateData(activeThemeId, templateName);
+      if (template && template.sections) {
+        console.log(`✅ Found ${Object.keys(template.sections).length} sections in ${templateName} template`);
+        allSections[templateName] = template.sections;
+        allOrders[templateName] = template.order || [];
+      }
     }
+    
+    // Merge all template sections into settings data (prioritize index/home page)
+    settingsData.current = settingsData.current || {};
+    settingsData.current.sections = {
+      ...settingsData.current.sections,
+      ...allSections.index
+    };
+    settingsData.current.order = allOrders.index || [];
+    
+    // Store all page templates for reference
+    settingsData.templates = allSections;
+    settingsData.templateOrders = allOrders;
 
     // Parse theme data
     console.log('🔧 Parsing theme data...');
@@ -63,11 +75,30 @@ async function handleThemeUpdate(shopDomain, themeId) {
       themeId: activeThemeId 
     });
 
+    // Parse all page templates
+    const allPages = {};
+    if (settingsData.templates) {
+      for (const [templateName, sections] of Object.entries(settingsData.templates)) {
+        const templateData = {
+          current: {
+            sections: sections,
+            order: settingsData.templateOrders[templateName] || []
+          }
+        };
+        const parsed = parser.parse(templateData);
+        allPages[templateName] = {
+          components: parsed.components,
+          sections: sections
+        };
+      }
+    }
+
     const themeDataDoc = {
       shopDomain,
       themeId: activeThemeId,
       themeName: settingsData.current?.name || 'Unknown',
-      components: parsedData.components,
+      components: parsedData.components, // Home page components
+      pages: allPages, // All page templates
       rawData: {
         theme: parsedData.theme,
         original: settingsData,

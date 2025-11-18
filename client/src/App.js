@@ -16,6 +16,7 @@ function App() {
   const [error, setError] = useState(null);
   const [showJson, setShowJson] = useState(true);
   const [showExtensions, setShowExtensions] = useState(true);
+  const [currentPage, setCurrentPage] = useState('index');
 
   useEffect(() => {
     // Fetch initial theme data
@@ -92,6 +93,18 @@ function App() {
             🔄 Manual Sync
           </button>
         </div>
+        {themeData && themeData.pages && (
+          <div className="page-selector">
+            <label>Page: </label>
+            <select value={currentPage} onChange={(e) => setCurrentPage(e.target.value)}>
+              {Object.keys(themeData.pages).map(pageName => (
+                <option key={pageName} value={pageName}>
+                  {pageName.charAt(0).toUpperCase() + pageName.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {error && <div className="error">{error}</div>}
       </header>
 
@@ -102,7 +115,10 @@ function App() {
               <div className="mobile-frame">
                 <div className="mobile-notch"></div>
                 <div className="mobile-content">
-                  <ComponentRenderer components={themeData.components} theme={themeData.theme} />
+                  <ComponentRenderer 
+                    components={themeData.pages?.[currentPage]?.components || themeData.components} 
+                    theme={themeData.theme} 
+                  />
                 </div>
               </div>
             </div>
