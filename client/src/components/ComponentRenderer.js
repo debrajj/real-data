@@ -55,12 +55,21 @@ function getThemeStyles(theme) {
 function HeaderComponent(props) {
   return (
     <header className="header-component">
-      <div className="logo">{props.logo_text || 'Store Logo'}</div>
-      <nav className="nav">
-        {props.menu_items?.map((item, i) => (
-          <a key={i} href={item.url}>{item.title}</a>
-        ))}
-      </nav>
+      <div className="header-inner">
+        <div className="logo">
+          {props.logo ? (
+            <img src={props.logo} alt="Logo" style={{ height: props.logo_height || '36px' }} />
+          ) : (
+            <span className="logo-text">{props.logo_text || '🛍️ Store'}</span>
+          )}
+        </div>
+        <nav className="nav">
+          <a href="/">Home</a>
+          <a href="/collections">Shop</a>
+          <a href="/pages/about">About</a>
+          <a href="/cart">Cart</a>
+        </nav>
+      </div>
     </header>
   );
 }
@@ -75,30 +84,47 @@ function AnnouncementBarComponent(props) {
 }
 
 function BannerComponent(props) {
+  const hasImage = props.image || props.image_url || props.desktop_image;
+  const heading = props.heading || props.title || 'Welcome to our store';
+  const text = props.text || props.description || 'Discover amazing products';
+  const buttonLabel = props.button_label || props.button_text || 'Shop Now';
+  
   return (
     <div className="banner-component" style={{ 
-      backgroundImage: props.image ? `url(${props.image})` : 'none',
-      minHeight: props.height || '400px'
+      backgroundImage: hasImage ? `url(${hasImage})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: props.height || '400px',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
     }}>
       <div className="banner-content">
-        {props.heading && <h2>{props.heading}</h2>}
-        {props.text && <p>{props.text}</p>}
-        {props.button_label && (
-          <button className="banner-btn">{props.button_label}</button>
-        )}
+        <h2>{heading}</h2>
+        <p>{text}</p>
+        <button className="banner-btn">{buttonLabel}</button>
       </div>
     </div>
   );
 }
 
 function FeaturedCollectionComponent(props) {
+  // Mock products if none provided
+  const mockProducts = [
+    { title: 'Product 1', price: '$29.99', image: 'https://via.placeholder.com/300x300?text=Product+1' },
+    { title: 'Product 2', price: '$39.99', image: 'https://via.placeholder.com/300x300?text=Product+2' },
+    { title: 'Product 3', price: '$49.99', image: 'https://via.placeholder.com/300x300?text=Product+3' },
+    { title: 'Product 4', price: '$59.99', image: 'https://via.placeholder.com/300x300?text=Product+4' },
+  ];
+  
+  const products = props.products || mockProducts;
+  
   return (
     <section className="featured-collection">
-      <h2>{props.title || 'Featured Collection'}</h2>
+      <h2>{props.title || props.heading || 'Featured Collection'}</h2>
       <div className="collection-grid">
-        {props.products?.map((product, i) => (
+        {products.slice(0, 4).map((product, i) => (
           <div key={i} className="product-card">
-            <img src={product.image} alt={product.title} />
+            <div className="product-image">
+              <img src={product.image} alt={product.title} />
+            </div>
             <h3>{product.title}</h3>
             <p className="price">{product.price}</p>
           </div>
