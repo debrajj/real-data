@@ -34,12 +34,20 @@ function App() {
 
   const fetchThemeData = async () => {
     try {
+      console.log('📡 Fetching theme data...');
       const response = await fetch(`${API_URL}/api/theme-data?shop=${SHOP_DOMAIN}`);
       const result = await response.json();
+      
+      console.log('📥 Fetch result:', result);
       
       if (result.success) {
         setThemeData(result.data);
         setLastUpdate(new Date());
+        setError(null);
+        console.log('✅ Theme data updated');
+      } else {
+        console.warn('⚠️ No theme data found:', result);
+        setError(result.error || 'No theme data available');
       }
     } catch (err) {
       console.error('❌ Fetch error:', err);
@@ -57,6 +65,11 @@ function App() {
       
       const result = await response.json();
       console.log('🔄 Manual sync triggered:', result);
+      
+      // Fetch updated data immediately after sync
+      setTimeout(() => {
+        fetchThemeData();
+      }, 2000); // Wait 2 seconds for sync to complete
     } catch (err) {
       console.error('❌ Sync error:', err);
     }
