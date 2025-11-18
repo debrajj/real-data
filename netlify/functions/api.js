@@ -48,15 +48,25 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes
+// Routes - handle both with and without /.netlify/functions/api prefix
 app.use('/webhooks', webhookRoutes);
 app.use('/api', sseRoutes);
+app.use('/.netlify/functions/api/webhooks', webhookRoutes);
+app.use('/.netlify/functions/api/api', sseRoutes);
 
 // Wrap with serverless
-const handler = serverless(app);
+const handler = serverless(app, {
+  basePath: '/.netlify/functions/api'
+});
 
 exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
-  await connectToDatabase();
+  
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    console.error('Database connection error:', error);
+  }
+  
   return handler(event, context);
 };

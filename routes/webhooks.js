@@ -32,8 +32,16 @@ const verifyShopifyWebhook = (req, res, next) => {
   }
 };
 
-// Theme update webhook
-router.post('/theme', express.json(), verifyShopifyWebhook, async (req, res) => {
+// Theme update webhook  
+router.post('/theme', express.raw({ type: 'application/json' }), (req, res, next) => {
+  // Parse body for webhook processing
+  try {
+    req.body = JSON.parse(req.body.toString());
+  } catch (e) {
+    console.error('Failed to parse webhook body');
+  }
+  next();
+}, verifyShopifyWebhook, async (req, res) => {
   try {
     console.log('📥 Theme webhook received:', req.body);
     
