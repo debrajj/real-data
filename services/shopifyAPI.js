@@ -56,6 +56,21 @@ class ShopifyAPI {
       throw error;
     }
   }
+
+  async getTemplateData(themeId, templateName = 'index') {
+    try {
+      const asset = await this.getThemeAsset(themeId, `templates/${templateName}.json`);
+      
+      if (asset && asset.value) {
+        return JSON.parse(asset.value);
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`❌ Error fetching template ${templateName}.json:`, error.message);
+      return null; // Don't throw, just return null if template doesn't exist
+    }
+  }
 }
 
 module.exports = ShopifyAPI;

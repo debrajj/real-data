@@ -36,6 +36,21 @@ async function handleThemeUpdate(shopDomain, themeId) {
       throw new Error('Failed to fetch settings_data.json');
     }
 
+    // Fetch index template (home page sections)
+    console.log('📥 Fetching index template...');
+    const indexTemplate = await shopifyAPI.getTemplateData(activeThemeId, 'index');
+    
+    // Merge template sections into settings data
+    if (indexTemplate && indexTemplate.sections) {
+      console.log('✅ Found sections in index template');
+      settingsData.current = settingsData.current || {};
+      settingsData.current.sections = {
+        ...settingsData.current.sections,
+        ...indexTemplate.sections
+      };
+      settingsData.current.order = indexTemplate.order || [];
+    }
+
     // Parse theme data
     console.log('🔧 Parsing theme data...');
     const parser = new ThemeParser();
