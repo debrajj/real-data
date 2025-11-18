@@ -5,7 +5,7 @@ import ComponentRenderer from './components/ComponentRenderer';
 // Determine API URL based on environment
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001'
-  : 'https://realtime-apps-json.vercel.app';
+  : window.location.origin; // Use same domain for Netlify deployment
 const SHOP_DOMAIN = 'testing-appx.myshopify.com';
 console.log('🔧 API_URL:', API_URL); // Debug log
 
