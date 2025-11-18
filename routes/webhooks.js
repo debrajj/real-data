@@ -13,8 +13,11 @@ const verifyShopifyWebhook = (req, res, next) => {
     return next(); // Allow in development
   }
 
+  // Use webhook secret if available, otherwise fall back to API secret
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET;
+  
   const hash = crypto
-    .createHmac('sha256', process.env.SHOPIFY_API_SECRET)
+    .createHmac('sha256', secret)
     .update(JSON.stringify(body), 'utf8')
     .digest('base64');
 
@@ -23,6 +26,8 @@ const verifyShopifyWebhook = (req, res, next) => {
     next();
   } else {
     console.error('❌ Webhook verification failed');
+    console.error('Expected:', hash);
+    console.error('Received:', hmac);
     res.status(401).send('Unauthorized');
   }
 };
