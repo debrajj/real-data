@@ -38,7 +38,13 @@ const connectToDatabase = async () => {
 app.get('/', (req, res) => {
   res.json({ 
     status: 'Shopify Theme Sync Server Running on Netlify',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    env: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasShopifyKey: !!process.env.SHOPIFY_API_KEY,
+      hasShopifyToken: !!process.env.SHOPIFY_ACCESS_TOKEN,
+      shopDomain: process.env.SHOPIFY_SHOP_DOMAIN
+    }
   });
 });
 
