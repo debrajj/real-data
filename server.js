@@ -32,7 +32,10 @@ app.use(bodyParser.raw({ type: 'application/json' }));
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'Shopify Theme Sync Server Running' });
+  res.json({ 
+    status: 'Shopify Theme Sync Server Running',
+    cors: 'Netlify enabled'
+  });
 });
 
 // Routes
