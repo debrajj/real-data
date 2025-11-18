@@ -20,38 +20,15 @@ function App() {
   useEffect(() => {
     // Fetch initial theme data
     fetchThemeData();
+    setIsConnected(true);
 
-    // Connect to SSE for realtime updates
-    const eventSource = new EventSource(`${API_URL}/api/stream?shop=${SHOP_DOMAIN}`);
-
-    eventSource.onopen = () => {
-      console.log('✅ SSE Connected');
-      setIsConnected(true);
-      setError(null);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('📥 SSE Message:', data);
-
-        if (data.type === 'theme_update') {
-          setThemeData(data.data);
-          setLastUpdate(new Date());
-        }
-      } catch (err) {
-        console.error('❌ SSE parse error:', err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error('❌ SSE Error:', err);
-      setIsConnected(false);
-      setError('Connection lost. Reconnecting...');
-    };
+    // Use polling for Netlify (SSE doesn't work with serverless functions)
+    const pollingInterval = setInterval(() => {
+      fetchThemeData();
+    }, 5000); // Poll every 5 seconds
 
     return () => {
-      eventSource.close();
+      clearInterval(pollingInterval);
     };
   }, []);
 
