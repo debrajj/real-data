@@ -126,14 +126,51 @@ function App() {
               <div className="json-panel-section">
                 <div className="panel-header">
                   <h3>📄 Live JSON Changes</h3>
-                  <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
-                    {showJson ? '▼' : '▶'}
-                  </button>
+                  <div className="panel-controls">
+                    <span className="version-badge">v{themeData.version || 1}</span>
+                    <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
+                      {showJson ? '▼' : '▶'}
+                    </button>
+                  </div>
                 </div>
                 {showJson && (
-                  <pre className="json-content">
-                    {JSON.stringify(themeData, null, 2)}
-                  </pre>
+                  <div className="json-viewer">
+                    <div className="json-section">
+                      <h4>🏠 Current Page: {currentPage}</h4>
+                      <pre className="json-content">
+                        {JSON.stringify(
+                          themeData.pages?.[currentPage] || themeData.components,
+                          null,
+                          2
+                        )}
+                      </pre>
+                    </div>
+                    
+                    <div className="json-section">
+                      <h4>🎨 Theme Settings</h4>
+                      <pre className="json-content">
+                        {JSON.stringify(themeData.rawData?.theme || {}, null, 2)}
+                      </pre>
+                    </div>
+                    
+                    <div className="json-section">
+                      <h4>📦 All Pages</h4>
+                      <pre className="json-content">
+                        {JSON.stringify(
+                          Object.keys(themeData.pages || {}),
+                          null,
+                          2
+                        )}
+                      </pre>
+                    </div>
+                    
+                    <div className="json-section">
+                      <h4>🔧 Full Data</h4>
+                      <pre className="json-content">
+                        {JSON.stringify(themeData, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
