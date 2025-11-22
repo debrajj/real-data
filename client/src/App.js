@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import './components/DawnTheme.css';
 import ComponentRenderer from './components/ComponentRenderer';
 
 // Determine API URL based on environment
