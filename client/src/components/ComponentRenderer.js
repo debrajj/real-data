@@ -1,13 +1,16 @@
 import React from 'react';
 import './ComponentRenderer.css';
+import UniversalRenderer from './UniversalRenderer';
 
-// Component mapping
+// Component mapping - specific renderers for common sections
 const componentMap = {
   Header: HeaderComponent,
   AnnouncementBar: AnnouncementBarComponent,
   Banner: BannerComponent,
+  Hero: HeroComponent,
   FeaturedCollection: FeaturedCollectionComponent,
   FeaturedProduct: FeaturedProductComponent,
+  ProductList: ProductListComponent,
   CollectionList: CollectionListComponent,
   MultiColumn: MultiColumnComponent,
   RichText: RichTextComponent,
@@ -34,12 +37,17 @@ function ComponentRenderer({ components, theme }) {
       {components.map((component) => {
         if (component.props?.disabled) return null;
         
-        const Component = componentMap[component.component] || DefaultComponent;
+        // Check if we have a specific renderer for this component
+        const SpecificComponent = componentMap[component.component];
         
         return (
           <div key={component.id} className="component-wrapper">
             <div className="section-label">{component.type || component.component}</div>
-            <Component {...component.props} blocks={component.blocks} type={component.type} />
+            {SpecificComponent ? (
+              <SpecificComponent {...component.props} blocks={component.blocks} type={component.type} />
+            ) : (
+              <UniversalRenderer component={component} blocks={component.blocks} props={component.props} />
+            )}
           </div>
         );
       })}
@@ -110,6 +118,63 @@ function BannerComponent(props) {
         <button className="banner-btn">{buttonLabel}</button>
       </div>
     </div>
+  );
+}
+
+function HeroComponent({ blocks, ...props }) {
+  const textBlock = blocks?.find(b => b.type === 'text');
+  const buttonBlock = blocks?.find(b => b.type === 'button');
+  
+  const height = props.section_height === 'small' ? '300px' :
+                 props.section_height === 'medium' ? '400px' :
+                 props.section_height === 'large' ? '600px' : '400px';
+  
+  return (
+    <div className="banner-component" style={{ 
+      backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: height,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundColor: props.overlay_color,
+    }}>
+      <div className="banner-content">
+        {textBlock && (
+          <div dangerouslySetInnerHTML={{ __html: textBlock.settings.text }} />
+        )}
+        {buttonBlock && (
+          <a href={buttonBlock.settings.link} className="banner-btn">
+            {buttonBlock.settings.label}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductListComponent({ blocks, ...props }) {
+  const mockProducts = Array.from({ length: props.max_products || 8 }, (_, i) => ({
+    title: `Product ${i + 1}`,
+    price: `$${(29.99 + i * 10).toFixed(2)}`,
+    image: `https://via.placeholder.com/300x300?text=Product+${i + 1}`
+  }));
+  
+  return (
+    <section className="featured-collection">
+      <div className="collection-grid" style={{
+        gridTemplateColumns: `repeat(${props.columns || 4}, 1fr)`,
+        gap: `${props.rows_gap || 24}px ${props.columns_gap || 8}px`,
+      }}>
+        {mockProducts.map((product, i) => (
+          <div key={i} className="product-card">
+            <div className="product-image">
+              <img src={product.image} alt={product.title} />
+            </div>
+            <h3>{product.title}</h3>
+            <p className="price">{product.price}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

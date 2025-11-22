@@ -6,7 +6,7 @@ import ComponentRenderer from './components/ComponentRenderer';
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001'
   : window.location.origin; // Use same domain for Netlify deployment
-const SHOP_DOMAIN = 'testing-appx.myshopify.com';
+const SHOP_DOMAIN = 'cmstestingg.myshopify.com';
 console.log('🔧 API_URL:', API_URL); // Debug log
 
 function App() {
@@ -125,52 +125,19 @@ function App() {
             <div className="side-panel">
               <div className="json-panel-section">
                 <div className="panel-header">
-                  <h3>📄 Live JSON Changes</h3>
-                  <div className="panel-controls">
-                    <span className="version-badge">v{themeData.version || 1}</span>
-                    <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
-                      {showJson ? '▼' : '▶'}
-                    </button>
-                  </div>
+                  <h3>📄 {currentPage.toUpperCase()} - v{themeData.version || 1}</h3>
+                  <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
+                    {showJson ? '▼' : '▶'}
+                  </button>
                 </div>
                 {showJson && (
-                  <div className="json-viewer">
-                    <div className="json-section">
-                      <h4>🏠 Current Page: {currentPage}</h4>
-                      <pre className="json-content">
-                        {JSON.stringify(
-                          themeData.pages?.[currentPage] || themeData.components,
-                          null,
-                          2
-                        )}
-                      </pre>
-                    </div>
-                    
-                    <div className="json-section">
-                      <h4>🎨 Theme Settings</h4>
-                      <pre className="json-content">
-                        {JSON.stringify(themeData.rawData?.theme || {}, null, 2)}
-                      </pre>
-                    </div>
-                    
-                    <div className="json-section">
-                      <h4>📦 All Pages</h4>
-                      <pre className="json-content">
-                        {JSON.stringify(
-                          Object.keys(themeData.pages || {}),
-                          null,
-                          2
-                        )}
-                      </pre>
-                    </div>
-                    
-                    <div className="json-section">
-                      <h4>🔧 Full Data</h4>
-                      <pre className="json-content">
-                        {JSON.stringify(themeData, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
+                  <pre className="json-content">
+                    {JSON.stringify(
+                      themeData.pages?.[currentPage]?.components || themeData.components || [],
+                      null,
+                      2
+                    )}
+                  </pre>
                 )}
               </div>
             </div>
