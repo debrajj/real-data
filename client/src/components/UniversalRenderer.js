@@ -75,6 +75,7 @@ function UniversalRenderer({ component, blocks = [], props = {} }) {
           <div className="video-wrapper">
             <iframe
               src={settings.video_url}
+              title={settings.title || 'Video content'}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

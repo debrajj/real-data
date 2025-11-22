@@ -322,32 +322,6 @@ function NewsletterComponent(props) {
   );
 }
 
-function DefaultComponent(props) {
-  const { type, ...settings } = props;
-  const hasContent = Object.keys(settings).length > 0;
-  
-  return (
-    <div className="default-component">
-      <div className="section-box">
-        <div className="section-icon">📦</div>
-        <h3>{type || 'Section'}</h3>
-        {hasContent && (
-          <div className="section-preview">
-            {Object.entries(settings).slice(0, 3).map(([key, value]) => (
-              <div key={key} className="setting-item">
-                <span className="setting-key">{key}:</span>
-                <span className="setting-value">
-                  {typeof value === 'string' && value.length > 30 
-                    ? value.substring(0, 30) + '...' 
-                    : String(value)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
 
 export default ComponentRenderer;
