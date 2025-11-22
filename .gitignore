@@ -3,6 +3,8 @@
 .env.local
 .env.production
 env-template.txt
+client/rxa.md
+*.md.backup
 
 # Dependencies
 node_modules/

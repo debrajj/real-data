@@ -1,9 +1,8 @@
-import React from 'react';
 import './UniversalRenderer.css';
 
 /**
  * Universal Component Renderer
- * Automatically renders any Shopify section based on its JSON structure
+ * Renders Shopify sections using actual Dawn theme structure and classes
  */
 function UniversalRenderer({ component, blocks = [], props = {} }) {
   const { type, id } = component;

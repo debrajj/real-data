@@ -20,12 +20,14 @@ async function handleThemeUpdate(shopDomain, themeId) {
     // Initialize Shopify API
     const shopifyAPI = new ShopifyAPI(shopDomain, shop.accessToken);
     
-    // Get theme ID if not provided
-    let activeThemeId = themeId;
+    // Get theme ID - prioritize: provided > env variable > active theme
+    let activeThemeId = themeId || process.env.SHOPIFY_THEME_ID;
     if (!activeThemeId) {
       const activeTheme = await shopifyAPI.getActiveTheme();
       activeThemeId = activeTheme.id.toString();
       console.log(`📌 Active theme ID: ${activeThemeId}`);
+    } else {
+      console.log(`📌 Using theme ID: ${activeThemeId}`);
     }
 
     // Fetch settings_data.json
@@ -63,28 +65,52 @@ async function handleThemeUpdate(shopDomain, themeId) {
       });
     }
     
+    // Debug: Log what we're merging
+    console.log('🔍 Index sections:', Object.keys(allSections.index || {}));
+    console.log('🔍 Index order:', allOrders.index);
+    console.log('🔍 settingsData keys:', Object.keys(settingsData || {}));
+    console.log('🔍 settingsData.current exists?', !!settingsData.current);
+    
     // Merge all template sections into settings data (prioritize index/home page)
-    settingsData.current = settingsData.current || {};
-    settingsData.current.sections = {
-      ...globalSections,
-      ...settingsData.current.sections,
-      ...allSections.index
-    };
+    if (!settingsData.current) {
+      settingsData.current = {};
+    }
+    
+    // Merge sections
+    const existingSections = settingsData.current.sections || {};
+    const indexSections = allSections.index || {};
+    
+    console.log('🔍 existingSections:', Object.keys(existingSections));
+    console.log('🔍 indexSections:', Object.keys(indexSections));
+    console.log('🔍 globalSections:', Object.keys(globalSections));
+    
+    // Create merged sections object
+    const mergedSections = Object.assign({}, globalSections, existingSections, indexSections);
     
     // Create proper order with header first, then content, then footer
-    const headerKeys = Object.keys(globalSections).filter(k => 
-      globalSections[k].type === 'header' || k.includes('header') || globalSections[k].type === 'announcement-bar'
+    const headerKeys = Object.keys(globalSections || {}).filter(k => 
+      globalSections[k]?.type === 'header' || k.includes('header') || globalSections[k]?.type === 'announcement-bar'
     );
-    const footerKeys = Object.keys(globalSections).filter(k => 
-      globalSections[k].type === 'footer' || k.includes('footer')
+    const footerKeys = Object.keys(globalSections || {}).filter(k => 
+      globalSections[k]?.type === 'footer' || k.includes('footer')
     );
     const contentOrder = allOrders.index || [];
     
-    settingsData.current.order = [
+    const mergedOrder = [
       ...headerKeys,
       ...contentOrder.filter(k => !headerKeys.includes(k) && !footerKeys.includes(k)),
       ...footerKeys
     ];
+    
+    // Create a NEW current object instead of modifying the existing one
+    settingsData.current = {
+      ...settingsData.current,
+      sections: mergedSections,
+      order: mergedOrder
+    };
+    
+    console.log('🔍 Final sections:', Object.keys(settingsData.current.sections || {}));
+    console.log('🔍 Final order:', settingsData.current.order);
     
     // Store all page templates for reference
     settingsData.templates = allSections;
@@ -92,8 +118,11 @@ async function handleThemeUpdate(shopDomain, themeId) {
 
     // Parse theme data
     console.log('🔧 Parsing theme data...');
+    console.log('🔍 Sections to parse:', Object.keys(settingsData.current?.sections || {}));
+    console.log('🔍 Order to parse:', settingsData.current?.order);
     const parser = new ThemeParser();
     const parsedData = parser.parse(settingsData);
+    console.log('🔍 Parsed components:', parsedData.components.length);
 
     // Save to MongoDB
     console.log('💾 Saving to MongoDB...');
@@ -126,6 +155,7 @@ async function handleThemeUpdate(shopDomain, themeId) {
       themeName: settingsData.current?.name || 'Unknown',
       components: parsedData.components, // Home page components
       pages: allPages, // All page templates
+      theme: parsedData.theme, // Theme settings (colors, typography, etc.)
       rawData: {
         theme: parsedData.theme,
         original: settingsData,

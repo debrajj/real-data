@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import './components/DawnTheme.css';
+import './components/dawn-base.css';
 import ComponentRenderer from './components/ComponentRenderer';
 
 // Determine API URL based on environment
@@ -17,6 +18,8 @@ function App() {
   const [error, setError] = useState(null);
   const [showJson, setShowJson] = useState(true);
   const [currentPage, setCurrentPage] = useState('index');
+  const [viewMode, setViewMode] = useState('mobile'); // 'mobile' or 'desktop'
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     // Fetch initial theme data
@@ -76,6 +79,21 @@ function App() {
     }
   };
 
+  const copyJsonToClipboard = () => {
+    const jsonData = JSON.stringify(
+      themeData.pages?.[currentPage]?.components || themeData.components || [],
+      null,
+      2
+    );
+    
+    navigator.clipboard.writeText(jsonData).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+    });
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -93,43 +111,93 @@ function App() {
             🔄 Manual Sync
           </button>
         </div>
-        {themeData && themeData.pages && (
-          <div className="page-selector">
-            <label>Page: </label>
-            <select value={currentPage} onChange={(e) => setCurrentPage(e.target.value)}>
-              {Object.keys(themeData.pages).map(pageName => (
-                <option key={pageName} value={pageName}>
-                  {pageName.charAt(0).toUpperCase() + pageName.slice(1)}
-                </option>
-              ))}
-            </select>
+        <div className="controls-row">
+          {themeData && themeData.pages && (
+            <div className="page-selector">
+              <label>Page: </label>
+              <select value={currentPage} onChange={(e) => setCurrentPage(e.target.value)}>
+                {Object.keys(themeData.pages).map(pageName => (
+                  <option key={pageName} value={pageName}>
+                    {pageName.charAt(0).toUpperCase() + pageName.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="view-mode-toggle">
+            <button 
+              className={`mode-btn ${viewMode === 'mobile' ? 'active' : ''}`}
+              onClick={() => setViewMode('mobile')}
+            >
+              📱 Mobile
+            </button>
+            <button 
+              className={`mode-btn ${viewMode === 'desktop' ? 'active' : ''}`}
+              onClick={() => setViewMode('desktop')}
+            >
+              🖥️ Desktop
+            </button>
           </div>
-        )}
+        </div>
         {error && <div className="error">{error}</div>}
       </header>
 
       <main className="App-main">
         {themeData ? (
           <div className="preview-container">
-            <div className="mobile-preview">
-              <div className="mobile-frame">
-                <div className="mobile-notch"></div>
-                <div className="mobile-content">
-                  <ComponentRenderer 
-                    components={themeData.pages?.[currentPage]?.components || themeData.components} 
-                    theme={themeData.theme} 
-                  />
+            <div className={`preview-wrapper ${viewMode}`}>
+              {viewMode === 'mobile' ? (
+                <div className="mobile-preview">
+                  <div className="mobile-frame">
+                    <div className="mobile-notch"></div>
+                    <div className="mobile-content">
+                      <ComponentRenderer 
+                        components={themeData.pages?.[currentPage]?.components || themeData.components} 
+                        theme={themeData.theme} 
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="desktop-preview">
+                  <div className="desktop-frame">
+                    <div className="browser-bar">
+                      <div className="browser-dots">
+                        <span className="dot red"></span>
+                        <span className="dot yellow"></span>
+                        <span className="dot green"></span>
+                      </div>
+                      <div className="browser-url">
+                        🔒 {SHOP_DOMAIN}
+                      </div>
+                    </div>
+                    <div className="desktop-content">
+                      <ComponentRenderer 
+                        components={themeData.pages?.[currentPage]?.components || themeData.components} 
+                        theme={themeData.theme} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="side-panel">
               <div className="json-panel-section">
                 <div className="panel-header">
                   <h3>📄 {currentPage.toUpperCase()} - v{themeData.version || 1}</h3>
-                  <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
-                    {showJson ? '▼' : '▶'}
-                  </button>
+                  <div className="panel-controls">
+                    <button 
+                      onClick={copyJsonToClipboard} 
+                      className="copy-btn"
+                      title="Copy JSON"
+                    >
+                      {copySuccess ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                    <button onClick={() => setShowJson(!showJson)} className="toggle-btn">
+                      {showJson ? '▼' : '▶'}
+                    </button>
+                  </div>
                 </div>
                 {showJson && (
                   <pre className="json-content">
