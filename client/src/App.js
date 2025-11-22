@@ -20,10 +20,14 @@ function App() {
   const [currentPage, setCurrentPage] = useState('index');
   const [viewMode, setViewMode] = useState('mobile'); // 'mobile' or 'desktop'
   const [copySuccess, setCopySuccess] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [showProducts, setShowProducts] = useState(true);
+  const [showThemeSettings, setShowThemeSettings] = useState(true);
 
   useEffect(() => {
     // Fetch initial theme data
     fetchThemeData();
+    fetchProducts();
     setIsConnected(true);
 
     // Use polling for Netlify (SSE doesn't work with serverless functions)
@@ -49,6 +53,7 @@ function App() {
         setLastUpdate(new Date());
         setError(null);
         console.log('✅ Theme data updated');
+        console.log('📸 Media count:', result.data.media?.length || 0);
       } else {
         console.warn('⚠️ No theme data found:', result);
         setError(result.error || 'No theme data available');
@@ -56,6 +61,21 @@ function App() {
     } catch (err) {
       console.error('❌ Fetch error:', err);
       setError('Failed to load theme data');
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      console.log('📡 Fetching products...');
+      const response = await fetch(`${API_URL}/api/products/${SHOP_DOMAIN}?limit=50`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setProducts(result.products);
+        console.log('✅ Products loaded:', result.count);
+      }
+    } catch (err) {
+      console.error('❌ Products fetch error:', err);
     }
   };
 
@@ -79,6 +99,25 @@ function App() {
     }
   };
 
+  const syncProducts = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/products/${SHOP_DOMAIN}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      const result = await response.json();
+      console.log('🏷️ Product sync triggered:', result);
+      
+      // Fetch updated products after sync
+      setTimeout(() => {
+        fetchProducts();
+      }, 3000); // Wait 3 seconds for sync to complete
+    } catch (err) {
+      console.error('❌ Product sync error:', err);
+    }
+  };
+
   const copyJsonToClipboard = () => {
     const jsonData = JSON.stringify(
       themeData.pages?.[currentPage]?.components || themeData.components || [],
@@ -92,6 +131,14 @@ function App() {
     }).catch(err => {
       console.error('Failed to copy:', err);
     });
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (
@@ -108,7 +155,10 @@ function App() {
             </span>
           )}
           <button onClick={triggerManualSync} className="sync-btn">
-            🔄 Manual Sync
+            🔄 Sync Theme
+          </button>
+          <button onClick={syncProducts} className="sync-btn">
+            🏷️ Sync Products
           </button>
         </div>
         <div className="controls-row">
@@ -153,7 +203,8 @@ function App() {
                     <div className="mobile-content">
                       <ComponentRenderer 
                         components={themeData.pages?.[currentPage]?.components || themeData.components} 
-                        theme={themeData.theme} 
+                        theme={themeData.theme}
+                        media={themeData.media || []}
                       />
                     </div>
                   </div>
@@ -174,7 +225,8 @@ function App() {
                     <div className="desktop-content">
                       <ComponentRenderer 
                         components={themeData.pages?.[currentPage]?.components || themeData.components} 
-                        theme={themeData.theme} 
+                        theme={themeData.theme}
+                        media={themeData.media || []}
                       />
                     </div>
                   </div>
@@ -209,6 +261,38 @@ function App() {
                   </pre>
                 )}
               </div>
+
+              {themeData.theme && (
+                <div className="json-panel-section">
+                  <div className="panel-header">
+                    <h3>🎨 Theme Settings</h3>
+                    <button onClick={() => setShowThemeSettings(!showThemeSettings)} className="toggle-btn">
+                      {showThemeSettings ? '▼' : '▶'}
+                    </button>
+                  </div>
+                  {showThemeSettings && (
+                    <pre className="json-content">
+                      {JSON.stringify(themeData.theme, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+              {products && products.length > 0 && (
+                <div className="json-panel-section">
+                  <div className="panel-header">
+                    <h3>🏷️ Products ({products.length})</h3>
+                    <button onClick={() => setShowProducts(!showProducts)} className="toggle-btn">
+                      {showProducts ? '▼' : '▶'}
+                    </button>
+                  </div>
+                  {showProducts && (
+                    <pre className="json-content">
+                      {JSON.stringify(products, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (

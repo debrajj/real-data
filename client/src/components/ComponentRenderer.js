@@ -20,7 +20,7 @@ const componentMap = {
   Newsletter: NewsletterComponent,
 };
 
-function ComponentRenderer({ components, theme }) {
+function ComponentRenderer({ components, theme, media = [] }) {
   if (!components || components.length === 0) {
     return (
       <div className="no-components">
@@ -44,9 +44,9 @@ function ComponentRenderer({ components, theme }) {
           <div key={component.id} className="component-wrapper">
             <div className="section-label">{component.type || component.component}</div>
             {SpecificComponent ? (
-              <SpecificComponent {...component.props} blocks={component.blocks} type={component.type} />
+              <SpecificComponent {...component.props} blocks={component.blocks} type={component.type} media={media} />
             ) : (
-              <UniversalRenderer component={component} blocks={component.blocks} props={component.props} />
+              <UniversalRenderer component={component} blocks={component.blocks} props={component.props} media={media} />
             )}
           </div>
         );

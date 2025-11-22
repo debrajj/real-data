@@ -5,6 +5,8 @@ const dotenv = require('dotenv');
 const { connectDB } = require('./config/database');
 const webhookRoutes = require('./routes/webhooks');
 const sseRoutes = require('./routes/sse');
+const mediaRoutes = require('./routes/media');
+const productsRoutes = require('./routes/products');
 const { initializeChangeStream } = require('./services/changeStream');
 
 dotenv.config();
@@ -41,6 +43,8 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/webhooks', webhookRoutes);
 app.use('/api', sseRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/products', productsRoutes);
 
 // Start server
 const startServer = async () => {

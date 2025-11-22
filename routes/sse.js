@@ -29,7 +29,7 @@ router.get('/stream', (req, res) => {
   });
 });
 
-// Get current theme data
+// Get current theme data with media
 router.get('/theme-data', async (req, res) => {
   try {
     const shopDomain = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN;
@@ -41,10 +41,39 @@ router.get('/theme-data', async (req, res) => {
     if (!themeData) {
       return res.status(404).json({ error: 'No theme data found' });
     }
+
+    // Get media for this shop
+    const Media = require('../models/Media');
+    const media = await Media.find({ shopDomain })
+      .select('-data')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+    
+    // Replace shopify:// URLs with CDN URLs
+    const UrlReplacer = require('../services/urlReplacer');
+    const urlReplacer = new UrlReplacer(shopDomain);
+    const replacedThemeData = await urlReplacer.replaceUrls(themeData);
     
     res.json({
       success: true,
-      data: themeData,
+      data: {
+        ...replacedThemeData,
+        media: media.map(m => ({
+          id: m._id,
+          filename: m.filename,
+          originalUrl: m.originalUrl,
+          cdnUrl: m.cdnUrl, // Include CDN URL
+          contentType: m.contentType,
+          size: m.size,
+          width: m.width,
+          height: m.height,
+          alt: m.alt,
+          url: `/api/media/${shopDomain}/image/${m._id}`,
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt,
+        })),
+      },
     });
   } catch (error) {
     console.error('❌ Error fetching theme data:', error);

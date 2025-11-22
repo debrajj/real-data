@@ -4,8 +4,24 @@ import './UniversalRenderer.css';
  * Universal Component Renderer
  * Renders Shopify sections using actual Dawn theme structure and classes
  */
-function UniversalRenderer({ component, blocks = [], props = {} }) {
+function UniversalRenderer({ component, blocks = [], props = {}, media = [] }) {
   const { type, id } = component;
+  
+  // Helper to convert Shopify URLs to local media URLs
+  const getMediaUrl = (shopifyUrl) => {
+    if (!shopifyUrl || !media || media.length === 0) return shopifyUrl;
+    
+    // Find matching media by original URL
+    const mediaItem = media.find(m => m.originalUrl === shopifyUrl);
+    if (mediaItem) {
+      const API_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3001'
+        : window.location.origin;
+      return `${API_URL}${mediaItem.url}`;
+    }
+    
+    return shopifyUrl;
+  };
   
   // Render blocks (sub-components within a section)
   const renderBlocks = () => {
@@ -60,7 +76,7 @@ function UniversalRenderer({ component, blocks = [], props = {} }) {
       case 'image':
         return settings.image ? (
           <img 
-            src={settings.image} 
+            src={getMediaUrl(settings.image)} 
             alt={settings.alt || ''} 
             className="block-image"
             style={{

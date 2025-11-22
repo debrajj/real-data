@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const ThemeData = require('../models/ThemeData');
 const Shop = require('../models/Shop');
+const Media = require('../models/Media');
 
 async function clearDatabase() {
   try {
@@ -17,6 +18,10 @@ async function clearDatabase() {
     console.log('🗑️  Clearing Shop collection...');
     const shopResult = await Shop.deleteMany({});
     console.log(`✅ Deleted ${shopResult.deletedCount} shop records`);
+
+    console.log('🗑️  Clearing Media collection...');
+    const mediaResult = await Media.deleteMany({});
+    console.log(`✅ Deleted ${mediaResult.deletedCount} media records`);
 
     console.log('✨ Database cleared successfully!');
     

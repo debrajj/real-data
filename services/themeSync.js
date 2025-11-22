@@ -2,6 +2,7 @@ const ShopifyAPI = require('./shopifyAPI');
 const ThemeParser = require('./themeParser');
 const ThemeData = require('../models/ThemeData');
 const Shop = require('../models/Shop');
+const MediaService = require('./mediaService');
 
 async function handleThemeUpdate(shopDomain, themeId) {
   try {
@@ -177,6 +178,12 @@ async function handleThemeUpdate(shopDomain, themeId) {
 
     console.log(`✅ Theme sync completed. Version: ${savedThemeData.version}`);
     console.log(`📊 Components: ${parsedData.components.length}`);
+    
+    // Download and store images
+    console.log('📸 Starting image download...');
+    const mediaService = new MediaService(shopDomain);
+    const imageResults = await mediaService.downloadAllImages(savedThemeData);
+    console.log(`📸 Images: ${imageResults.success} downloaded, ${imageResults.skipped} existing, ${imageResults.failed} failed`);
     
     return savedThemeData;
   } catch (error) {

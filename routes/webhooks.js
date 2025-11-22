@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { handleThemeUpdate } = require('../services/themeSync');
+const { processWebhook, getWebhookEvents } = require('../services/webhookHandler');
 
 // Verify Shopify webhook
 const verifyShopifyWebhook = (req, res, next) => {
@@ -87,6 +88,59 @@ router.post('/asset', express.json(), verifyShopifyWebhook, async (req, res) => 
   } catch (error) {
     console.error('❌ Asset webhook error:', error);
     res.status(500).send('Internal server error');
+  }
+});
+
+// Generic webhook handler for all Shopify events
+router.post('/:topic', express.json(), verifyShopifyWebhook, async (req, res) => {
+  try {
+    const topic = req.params.topic.replace('-', '/'); // Convert carts-create to carts/create
+    const shopDomain = req.get('X-Shopify-Shop-Domain') || process.env.SHOPIFY_SHOP_DOMAIN;
+    const headers = {
+      'x-shopify-webhook-id': req.get('X-Shopify-Webhook-Id'),
+      'x-shopify-api-version': req.get('X-Shopify-API-Version'),
+      'x-shopify-topic': req.get('X-Shopify-Topic'),
+    };
+    
+    console.log(`📥 Webhook received: ${topic} from ${shopDomain}`);
+    
+    // Acknowledge immediately
+    res.status(200).send('Webhook received');
+    
+    // Process asynchronously
+    processWebhook(topic, shopDomain, req.body, headers).catch(error => {
+      console.error(`❌ Error processing webhook ${topic}:`, error);
+    });
+    
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    res.status(500).send('Internal server error');
+  }
+});
+
+// Get webhook events (for debugging/monitoring)
+router.get('/events', async (req, res) => {
+  try {
+    const shopDomain = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN;
+    const { topic, eventType, limit } = req.query;
+    
+    const events = await getWebhookEvents(shopDomain, {
+      topic,
+      eventType,
+      limit: parseInt(limit) || 100,
+    });
+    
+    res.json({
+      success: true,
+      count: events.length,
+      events,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching webhook events:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 

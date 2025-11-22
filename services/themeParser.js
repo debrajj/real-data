@@ -52,7 +52,8 @@ class ThemeParser {
         theme: {
           colors: this.extractColors(settingsData),
           typography: this.extractTypography(settingsData),
-          settings: settingsData.current?.settings || {},
+          colorSchemes: settingsData.current?.color_schemes || {},
+          settings: this.extractSettings(settingsData),
         },
       };
     } catch (error) {
@@ -97,11 +98,14 @@ class ThemeParser {
   }
 
   extractColors(settingsData) {
-    const settings = settingsData.current?.settings || {};
+    const current = settingsData.current || {};
     const colors = {};
 
-    for (const [key, value] of Object.entries(settings)) {
-      if (key.includes('color') || key.includes('background')) {
+    // Extract color-related settings from root level
+    for (const [key, value] of Object.entries(current)) {
+      if ((key.includes('color') || key.includes('background')) && 
+          key !== 'color_schemes' && 
+          typeof value === 'string') {
         colors[key] = value;
       }
     }
@@ -110,16 +114,34 @@ class ThemeParser {
   }
 
   extractTypography(settingsData) {
-    const settings = settingsData.current?.settings || {};
+    const current = settingsData.current || {};
     const typography = {};
 
-    for (const [key, value] of Object.entries(settings)) {
-      if (key.includes('font') || key.includes('text')) {
+    // Extract font-related settings from root level
+    for (const [key, value] of Object.entries(current)) {
+      if ((key.includes('font') || key.includes('type_') || key.includes('heading') || key.includes('body_scale')) && 
+          typeof value !== 'object') {
         typography[key] = value;
       }
     }
 
     return typography;
+  }
+
+  extractSettings(settingsData) {
+    const current = settingsData.current || {};
+    const settings = {};
+
+    // Extract all non-section, non-order settings
+    const excludeKeys = ['sections', 'order', 'content_for_index', 'color_schemes'];
+    
+    for (const [key, value] of Object.entries(current)) {
+      if (!excludeKeys.includes(key) && typeof value !== 'object') {
+        settings[key] = value;
+      }
+    }
+
+    return settings;
   }
 
   toPascalCase(str) {

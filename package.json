@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "download-images": "node scripts/downloadImages.js",
+    "view-media": "node scripts/viewMedia.js",
+    "sync-products": "node scripts/syncProducts.js",
+    "view-products": "node scripts/viewProducts.js"
   },
   "dependencies": {
     "express": "^4.18.2",
