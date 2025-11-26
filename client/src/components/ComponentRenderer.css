@@ -423,13 +423,41 @@
 
 /* Video */
 .video-component {
-  padding: 1rem;
+  padding: 2rem 1rem;
+  background: #ffffff;
 }
 
-.video-component iframe {
+.video-component h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.video-component .video-wrapper {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+}
+
+.video-component .video-wrapper iframe,
+.video-component .video-wrapper video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 200px;
-  border-radius: 6px;
+  height: 100%;
+  border: none;
+}
+
+.video-component p {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
 }
 
 /* Default Component */

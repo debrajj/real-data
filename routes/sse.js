@@ -50,6 +50,14 @@ router.get('/theme-data', async (req, res) => {
       .limit(100)
       .lean();
     
+    // Get blogs and articles for this shop
+    const { Blog, Article } = require('../models/Blog');
+    const blogs = await Blog.find({ shopDomain }).lean();
+    const articles = await Article.find({ shopDomain })
+      .sort({ published_at: -1 })
+      .limit(50)
+      .lean();
+    
     // Replace shopify:// URLs with CDN URLs
     const UrlReplacer = require('../services/urlReplacer');
     const urlReplacer = new UrlReplacer(shopDomain);
@@ -59,6 +67,9 @@ router.get('/theme-data', async (req, res) => {
       success: true,
       data: {
         ...replacedThemeData,
+        blogs,
+        articles,
+        customPages: replacedThemeData.customPages || [],
         media: media.map(m => ({
           id: m._id,
           filename: m.filename,

@@ -141,13 +141,13 @@ class MediaService {
   }
 
   /**
-   * Check if URL is an image
+   * Check if URL is an image or video
    */
   isImageUrl(url) {
     if (typeof url !== 'string') return false;
     
     // Check for Shopify internal URLs
-    if (url.startsWith('shopify://shop_images/')) {
+    if (url.startsWith('shopify://shop_images/') || url.startsWith('shopify://shop_videos/')) {
       return true;
     }
     
@@ -156,9 +156,9 @@ class MediaService {
       return true;
     }
 
-    // Check for common image extensions
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-    return imageExtensions.some(ext => url.toLowerCase().includes(ext));
+    // Check for common image and video extensions
+    const mediaExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.webm', '.mov', '.avi'];
+    return mediaExtensions.some(ext => url.toLowerCase().includes(ext));
   }
 
   /**
@@ -258,6 +258,101 @@ class MediaService {
    */
   async getMediaById(mediaId) {
     return await Media.findById(mediaId);
+  }
+
+  /**
+   * Download all product images
+   */
+  async downloadProductImages() {
+    try {
+      const Product = require('../models/Product');
+      const products = await Product.find({ shopDomain: this.shopDomain }).lean();
+      
+      console.log(`📦 Processing ${products.length} products for images`);
+      
+      const results = { success: 0, failed: 0, skipped: 0 };
+      
+      for (const product of products) {
+        // Download main product image
+        if (product.image && product.image.src) {
+          const media = await this.downloadAndStore(product.image.src, {
+            alt: product.image.alt || product.title,
+            width: product.image.width,
+            height: product.image.height,
+            usedIn: { type: 'product', id: product.productId, title: product.title },
+          });
+          
+          if (media) {
+            media.createdAt === media.updatedAt ? results.success++ : results.skipped++;
+          } else {
+            results.failed++;
+          }
+        }
+        
+        // Download all product images
+        if (product.images && Array.isArray(product.images)) {
+          for (const img of product.images) {
+            if (img.src) {
+              const media = await this.downloadAndStore(img.src, {
+                alt: img.alt || product.title,
+                width: img.width,
+                height: img.height,
+                usedIn: { type: 'product', id: product.productId, title: product.title },
+              });
+              
+              if (media) {
+                media.createdAt === media.updatedAt ? results.success++ : results.skipped++;
+              } else {
+                results.failed++;
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`📸 Product images: ${results.success} new, ${results.skipped} existing, ${results.failed} failed`);
+      return results;
+    } catch (error) {
+      console.error('❌ Error downloading product images:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download all collection images
+   */
+  async downloadCollectionImages() {
+    try {
+      const Collection = require('../models/Collection');
+      const collections = await Collection.find({ shopDomain: this.shopDomain }).lean();
+      
+      console.log(`📚 Processing ${collections.length} collections for images`);
+      
+      const results = { success: 0, failed: 0, skipped: 0 };
+      
+      for (const collection of collections) {
+        if (collection.image && collection.image.src) {
+          const media = await this.downloadAndStore(collection.image.src, {
+            alt: collection.image.alt || collection.title,
+            width: collection.image.width,
+            height: collection.image.height,
+            usedIn: { type: 'collection', id: collection.collectionId, title: collection.title },
+          });
+          
+          if (media) {
+            media.createdAt === media.updatedAt ? results.success++ : results.skipped++;
+          } else {
+            results.failed++;
+          }
+        }
+      }
+      
+      console.log(`📸 Collection images: ${results.success} new, ${results.skipped} existing, ${results.failed} failed`);
+      return results;
+    } catch (error) {
+      console.error('❌ Error downloading collection images:', error);
+      throw error;
+    }
   }
 }
 

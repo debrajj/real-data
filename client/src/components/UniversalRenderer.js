@@ -11,8 +11,12 @@ function UniversalRenderer({ component, blocks = [], props = {}, media = [] }) {
   const getMediaUrl = (shopifyUrl) => {
     if (!shopifyUrl || !media || media.length === 0) return shopifyUrl;
     
-    // Find matching media by original URL
-    const mediaItem = media.find(m => m.originalUrl === shopifyUrl);
+    // Find matching media by original URL or CDN URL
+    const mediaItem = media.find(m => 
+      m.originalUrl === shopifyUrl || 
+      m.cdnUrl === shopifyUrl
+    );
+    
     if (mediaItem) {
       const API_URL = window.location.hostname === 'localhost' 
         ? 'http://localhost:3001'
@@ -86,18 +90,75 @@ function UniversalRenderer({ component, blocks = [], props = {}, media = [] }) {
           />
         ) : null;
         
-      case 'video':
-        return settings.video_url ? (
+      case 'video': {
+        const getEmbedUrl = (url) => {
+          if (!url) return null;
+          
+          // YouTube URL conversion
+          if (url.includes('youtube.com/watch')) {
+            const videoId = url.split('v=')[1]?.split('&')[0];
+            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+          }
+          if (url.includes('youtu.be/')) {
+            const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+          }
+          
+          // Vimeo URL conversion
+          if (url.includes('vimeo.com/')) {
+            const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+            return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+          }
+          
+          return url;
+        };
+
+        const videoUrl = settings.video_url || settings.video;
+        const embedUrl = getEmbedUrl(videoUrl);
+        
+        return embedUrl ? (
           <div className="video-wrapper">
-            <iframe
-              src={settings.video_url}
-              title={settings.title || 'Video content'}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            {embedUrl.endsWith('.mp4') || embedUrl.endsWith('.webm') ? (
+              <video controls loop={settings.enable_video_looping}>
+                <source src={getMediaUrl(embedUrl)} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <iframe
+                src={embedUrl}
+                title={settings.title || 'Video content'}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
           </div>
         ) : null;
+      }
+        
+      case 'row':
+        return (
+          <div className="multirow-row">
+            {settings.image && (
+              <div className="row-image">
+                <img 
+                  src={getMediaUrl(settings.image)} 
+                  alt={settings.caption || ''} 
+                />
+              </div>
+            )}
+            <div className="row-content">
+              {settings.caption && <p className="row-caption">{settings.caption}</p>}
+              {settings.heading && <h3>{settings.heading}</h3>}
+              {settings.text && <div dangerouslySetInnerHTML={{ __html: settings.text }} />}
+              {settings.button_label && (
+                <a href={settings.button_link} className="button">
+                  {settings.button_label}
+                </a>
+              )}
+            </div>
+          </div>
+        );
         
       default:
         return (

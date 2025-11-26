@@ -41,7 +41,7 @@ async function handleThemeUpdate(shopDomain, themeId) {
 
     // Fetch all page templates
     console.log('📥 Fetching page templates...');
-    const templates = ['index', 'product', 'collection', 'page', 'blog', 'article', 'cart'];
+    const templates = ['index', 'product', 'collection', 'page', 'blog', 'article'];
     const allSections = {};
     const allOrders = {};
     
@@ -136,16 +136,34 @@ async function handleThemeUpdate(shopDomain, themeId) {
     const allPages = {};
     if (settingsData.templates) {
       for (const [templateName, sections] of Object.entries(settingsData.templates)) {
+        // Merge global sections (header/footer) with page sections
+        const mergedSections = { ...globalSections, ...sections };
+        
+        // Create order with header first, content, then footer
+        const headerKeys = Object.keys(globalSections).filter(k => 
+          globalSections[k]?.type === 'header' || k.includes('header') || globalSections[k]?.type === 'announcement-bar'
+        );
+        const footerKeys = Object.keys(globalSections).filter(k => 
+          globalSections[k]?.type === 'footer' || k.includes('footer')
+        );
+        const contentOrder = settingsData.templateOrders[templateName] || [];
+        
+        const pageOrder = [
+          ...headerKeys,
+          ...contentOrder.filter(k => !headerKeys.includes(k) && !footerKeys.includes(k)),
+          ...footerKeys
+        ];
+        
         const templateData = {
           current: {
-            sections: sections,
-            order: settingsData.templateOrders[templateName] || []
+            sections: mergedSections,
+            order: pageOrder
           }
         };
         const parsed = parser.parse(templateData);
         allPages[templateName] = {
           components: parsed.components,
-          sections: sections
+          sections: mergedSections
         };
       }
     }
@@ -183,7 +201,45 @@ async function handleThemeUpdate(shopDomain, themeId) {
     console.log('📸 Starting image download...');
     const mediaService = new MediaService(shopDomain);
     const imageResults = await mediaService.downloadAllImages(savedThemeData);
-    console.log(`📸 Images: ${imageResults.success} downloaded, ${imageResults.skipped} existing, ${imageResults.failed} failed`);
+    console.log(`📸 Theme images: ${imageResults.success} downloaded, ${imageResults.skipped} existing, ${imageResults.failed} failed`);
+    
+    // Download product images
+    try {
+      const productResults = await mediaService.downloadProductImages();
+      console.log(`📸 Product images: ${productResults.success} new, ${productResults.skipped} existing, ${productResults.failed} failed`);
+    } catch (error) {
+      console.warn('⚠️ Could not download product images:', error.message);
+    }
+    
+    // Download collection images
+    try {
+      const collectionResults = await mediaService.downloadCollectionImages();
+      console.log(`📸 Collection images: ${collectionResults.success} new, ${collectionResults.skipped} existing, ${collectionResults.failed} failed`);
+    } catch (error) {
+      console.warn('⚠️ Could not download collection images:', error.message);
+    }
+    
+    // Sync blogs and articles
+    try {
+      const { syncAllBlogs } = require('./blogSync');
+      const blogResults = await syncAllBlogs(shopDomain);
+      console.log(`📝 Blogs synced: ${blogResults.blogsCount} blogs, ${blogResults.articlesCount} articles`);
+    } catch (error) {
+      console.warn('⚠️ Could not sync blogs:', error.message);
+    }
+    
+    // Sync custom pages (About Us, Contact Us, etc.)
+    try {
+      const { syncAllPages } = require('./pageSync');
+      const pageResults = await syncAllPages(shopDomain);
+      console.log(`📄 Pages synced: ${pageResults.total} pages`);
+      
+      // Add pages to theme data
+      savedThemeData.customPages = pageResults.pages;
+      await savedThemeData.save();
+    } catch (error) {
+      console.warn('⚠️ Could not sync pages:', error.message);
+    }
     
     return savedThemeData;
   } catch (error) {

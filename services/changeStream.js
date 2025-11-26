@@ -33,6 +33,11 @@ function broadcastToClients(data, shopDomain) {
   console.log(`📤 Broadcast sent to ${sentCount} clients for shop: ${shopDomain}`);
 }
 
+let themeStreamRetryCount = 0;
+let mediaStreamRetryCount = 0;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 10000; // 10 seconds
+
 function initializeChangeStream() {
   try {
     // Watch ThemeData collection
@@ -41,6 +46,7 @@ function initializeChangeStream() {
     });
 
     console.log('👀 MongoDB Change Stream watching ThemeData collection');
+    themeStreamRetryCount = 0; // Reset on successful connection
 
     themeChangeStream.on('change', async (change) => {
       console.log('🔔 Theme change detected:', change.operationType);
@@ -95,12 +101,18 @@ function initializeChangeStream() {
     });
 
     themeChangeStream.on('error', (error) => {
-      console.error('❌ Theme change stream error:', error);
+      console.error('❌ Theme change stream error:', error.message);
+      themeStreamRetryCount++;
     });
 
     themeChangeStream.on('close', () => {
-      console.log('⚠️ Theme change stream closed, reinitializing...');
-      setTimeout(initializeChangeStream, 5000);
+      if (themeStreamRetryCount < MAX_RETRIES) {
+        const delay = RETRY_DELAY * Math.pow(2, themeStreamRetryCount);
+        console.log(`⚠️ Theme change stream closed, retrying in ${delay/1000}s (attempt ${themeStreamRetryCount + 1}/${MAX_RETRIES})`);
+        setTimeout(initializeChangeStream, delay);
+      } else {
+        console.log('❌ Theme change stream max retries reached, giving up');
+      }
     });
 
     // Watch Media collection
@@ -109,6 +121,7 @@ function initializeChangeStream() {
     });
 
     console.log('👀 MongoDB Change Stream watching Media collection');
+    mediaStreamRetryCount = 0; // Reset on successful connection
 
     mediaChangeStream.on('change', async (change) => {
       console.log('🔔 Media change detected:', change.operationType);
@@ -143,11 +156,16 @@ function initializeChangeStream() {
     });
 
     mediaChangeStream.on('error', (error) => {
-      console.error('❌ Media change stream error:', error);
+      console.error('❌ Media change stream error:', error.message);
+      mediaStreamRetryCount++;
     });
 
     mediaChangeStream.on('close', () => {
-      console.log('⚠️ Media change stream closed');
+      if (mediaStreamRetryCount < MAX_RETRIES) {
+        console.log(`⚠️ Media change stream closed (attempt ${mediaStreamRetryCount}/${MAX_RETRIES})`);
+      } else {
+        console.log('❌ Media change stream max retries reached');
+      }
     });
 
   } catch (error) {

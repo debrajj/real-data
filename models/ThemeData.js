@@ -21,6 +21,10 @@ const themeDataSchema = new mongoose.Schema({
     type: Object,
     default: {},
   },
+  customPages: {
+    type: Array,
+    default: [],
+  },
   theme: {
     type: Object,
     default: {},

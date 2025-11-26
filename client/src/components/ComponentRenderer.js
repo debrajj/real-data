@@ -296,16 +296,67 @@ function ImageWithTextComponent(props) {
 }
 
 function VideoComponent(props) {
+  // Helper to convert YouTube URL to embed format
+  const getEmbedUrl = (url) => {
+    if (!url || url === '') return null;
+    
+    // YouTube URL conversion
+    if (url.includes('youtube.com/watch')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    }
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    }
+    
+    // Vimeo URL conversion
+    if (url.includes('vimeo.com/')) {
+      const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+    }
+    
+    return url;
+  };
+
+  // Prioritize video_url (YouTube/Vimeo) over video (hosted file)
+  const videoUrl = (props.video_url && props.video_url !== '') ? props.video_url : props.video;
+  const embedUrl = getEmbedUrl(videoUrl);
+  
+  // If no valid video URL, show placeholder
+  if (!embedUrl || embedUrl === '') {
+    return (
+      <section className="video-component">
+        {props.heading && <h2>{props.heading}</h2>}
+        <div style={{padding: '3rem 1rem', textAlign: 'center', background: '#f5f5f5', borderRadius: '8px'}}>
+          <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🎥</div>
+          <p style={{color: '#666', margin: 0}}>Video section (no video configured)</p>
+        </div>
+        {props.description && <p>{props.description}</p>}
+      </section>
+    );
+  }
+  
   return (
     <section className="video-component">
-      {props.video_url && (
-        <iframe 
-          src={props.video_url} 
-          title="Video"
-          frameBorder="0"
-          allowFullScreen
-        />
-      )}
+      {props.heading && <h2>{props.heading}</h2>}
+      <div className="video-wrapper">
+        {embedUrl.endsWith('.mp4') || embedUrl.endsWith('.webm') ? (
+          <video controls loop={props.enable_video_looping}>
+            <source src={embedUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          <iframe 
+            src={embedUrl} 
+            title={props.heading || "Video"}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )}
+      </div>
+      {props.description && <p>{props.description}</p>}
     </section>
   );
 }

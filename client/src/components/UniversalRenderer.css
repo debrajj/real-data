@@ -117,3 +117,63 @@
 .scheme-4 { background: #e1edf5; color: #000000; }
 .scheme-5 { background: #333333; color: #ffffff; }
 .scheme-6 { background: rgba(0,0,0,0); color: #ffffff; }
+
+/* Multirow Styles */
+.multirow-row {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.multirow-row .row-image {
+  flex: 1;
+  min-width: 300px;
+}
+
+.multirow-row .row-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.multirow-row .row-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.multirow-row .row-caption {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multirow-row h3 {
+  font-size: 1.75rem;
+  margin: 0.5rem 0 1rem 0;
+  font-weight: 700;
+}
+
+.multirow-row .button {
+  margin-top: 1rem;
+}
+
+/* Alternate layout for multirow */
+.section-multirow .block:nth-child(even) .multirow-row {
+  flex-direction: row-reverse;
+}
+
+@media (max-width: 768px) {
+  .multirow-row {
+    flex-direction: column !important;
+  }
+  
+  .multirow-row .row-image,
+  .multirow-row .row-content {
+    min-width: 100%;
+  }
+}

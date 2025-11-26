@@ -20,14 +20,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState('index');
   const [viewMode, setViewMode] = useState('mobile'); // 'mobile' or 'desktop'
   const [copySuccess, setCopySuccess] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [showProducts, setShowProducts] = useState(true);
   const [showThemeSettings, setShowThemeSettings] = useState(true);
 
   useEffect(() => {
     // Fetch initial theme data
     fetchThemeData();
-    fetchProducts();
     setIsConnected(true);
 
     // Use polling for Netlify (SSE doesn't work with serverless functions)
@@ -64,20 +61,7 @@ function App() {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      console.log('📡 Fetching products...');
-      const response = await fetch(`${API_URL}/api/products/${SHOP_DOMAIN}?limit=50`);
-      const result = await response.json();
-      
-      if (result.success) {
-        setProducts(result.products);
-        console.log('✅ Products loaded:', result.count);
-      }
-    } catch (err) {
-      console.error('❌ Products fetch error:', err);
-    }
-  };
+
 
   const triggerManualSync = async () => {
     try {
@@ -99,31 +83,22 @@ function App() {
     }
   };
 
-  const syncProducts = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/products/${SHOP_DOMAIN}/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      const result = await response.json();
-      console.log('🏷️ Product sync triggered:', result);
-      
-      // Fetch updated products after sync
-      setTimeout(() => {
-        fetchProducts();
-      }, 3000); // Wait 3 seconds for sync to complete
-    } catch (err) {
-      console.error('❌ Product sync error:', err);
-    }
-  };
+
 
   const copyJsonToClipboard = () => {
-    const jsonData = JSON.stringify(
-      themeData.pages?.[currentPage]?.components || themeData.components || [],
-      null,
-      2
-    );
+    let dataToShow;
+    
+    if (currentPage === 'blog' && themeData.articles) {
+      dataToShow = { components: themeData.pages?.[currentPage]?.components || [], articles: themeData.articles };
+    } else if (currentPage === 'article' && themeData.articles) {
+      dataToShow = { components: themeData.pages?.[currentPage]?.components || [], articles: themeData.articles };
+    } else if (currentPage === 'page' && themeData.customPages) {
+      dataToShow = { components: themeData.pages?.[currentPage]?.components || [], customPages: themeData.customPages };
+    } else {
+      dataToShow = themeData.pages?.[currentPage]?.components || themeData.components || [];
+    }
+    
+    const jsonData = JSON.stringify(dataToShow, null, 2);
     
     navigator.clipboard.writeText(jsonData).then(() => {
       setCopySuccess(true);
@@ -150,9 +125,6 @@ function App() {
           )}
           <button onClick={triggerManualSync} className="sync-btn">
             🔄 Sync Theme
-          </button>
-          <button onClick={syncProducts} className="sync-btn">
-            🏷️ Sync Products
           </button>
         </div>
         <div className="controls-row">
@@ -248,7 +220,17 @@ function App() {
                 {showJson && (
                   <pre className="json-content">
                     {JSON.stringify(
-                      themeData.pages?.[currentPage]?.components || themeData.components || [],
+                      (() => {
+                        if (currentPage === 'blog' && themeData.articles) {
+                          return { components: themeData.pages?.[currentPage]?.components || [], articles: themeData.articles };
+                        } else if (currentPage === 'article' && themeData.articles) {
+                          return { components: themeData.pages?.[currentPage]?.components || [], articles: themeData.articles };
+                        } else if (currentPage === 'page' && themeData.customPages) {
+                          return { components: themeData.pages?.[currentPage]?.components || [], customPages: themeData.customPages };
+                        } else {
+                          return themeData.pages?.[currentPage]?.components || themeData.components || [];
+                        }
+                      })(),
                       null,
                       2
                     )}
@@ -267,22 +249,6 @@ function App() {
                   {showThemeSettings && (
                     <pre className="json-content">
                       {JSON.stringify(themeData.theme, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
-
-              {products && products.length > 0 && (
-                <div className="json-panel-section">
-                  <div className="panel-header">
-                    <h3>🏷️ Products ({products.length})</h3>
-                    <button onClick={() => setShowProducts(!showProducts)} className="toggle-btn">
-                      {showProducts ? '▼' : '▶'}
-                    </button>
-                  </div>
-                  {showProducts && (
-                    <pre className="json-content">
-                      {JSON.stringify(products, null, 2)}
                     </pre>
                   )}
                 </div>

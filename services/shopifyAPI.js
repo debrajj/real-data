@@ -167,6 +167,53 @@ class ShopifyAPI {
       throw error;
     }
   }
+
+  async getAllBlogs() {
+    try {
+      const response = await axios.get(`${this.baseURL}/blogs.json`, {
+        headers: {
+          'X-Shopify-Access-Token': this.accessToken,
+        },
+      });
+      
+      return response.data.blogs;
+    } catch (error) {
+      console.error('❌ Error fetching blogs:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async getBlogArticles(blogId, limit = 250) {
+    try {
+      const response = await axios.get(`${this.baseURL}/blogs/${blogId}/articles.json`, {
+        headers: {
+          'X-Shopify-Access-Token': this.accessToken,
+        },
+        params: { limit },
+      });
+      
+      return response.data.articles;
+    } catch (error) {
+      console.error(`❌ Error fetching articles for blog ${blogId}:`, error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async getAllPages(limit = 250) {
+    try {
+      const response = await axios.get(`${this.baseURL}/pages.json`, {
+        headers: {
+          'X-Shopify-Access-Token': this.accessToken,
+        },
+        params: { limit },
+      });
+      
+      return response.data.pages;
+    } catch (error) {
+      console.error('❌ Error fetching pages:', error.response?.data || error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = ShopifyAPI;

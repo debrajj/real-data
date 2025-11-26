@@ -7,6 +7,8 @@ const webhookRoutes = require('./routes/webhooks');
 const sseRoutes = require('./routes/sse');
 const mediaRoutes = require('./routes/media');
 const productsRoutes = require('./routes/products');
+const collectionsRoutes = require('./routes/collections');
+const blogsRoutes = require('./routes/blogs');
 const { initializeChangeStream } = require('./services/changeStream');
 
 dotenv.config();
@@ -45,6 +47,8 @@ app.use('/webhooks', webhookRoutes);
 app.use('/api', sseRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/collections', collectionsRoutes);
+app.use('/api/blogs', blogsRoutes);
 
 // Start server
 const startServer = async () => {
