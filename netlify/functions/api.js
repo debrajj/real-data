@@ -6,6 +6,14 @@ const dotenv = require('dotenv');
 const { connectDB } = require('../../config/database');
 const webhookRoutes = require('../../routes/webhooks');
 const sseRoutes = require('../../routes/sse');
+const mediaRoutes = require('../../routes/media');
+const productsRoutes = require('../../routes/products');
+const collectionsRoutes = require('../../routes/collections');
+const blogsRoutes = require('../../routes/blogs');
+const discountsRoutes = require('../../routes/discounts');
+const authRoutes = require('../../routes/auth');
+const themeRoutes = require('../../routes/theme');
+const configRoutes = require('../../routes/config');
 
 dotenv.config();
 
@@ -51,8 +59,24 @@ app.get('/', (req, res) => {
 // Routes - handle both with and without /.netlify/functions/api prefix
 app.use('/webhooks', webhookRoutes);
 app.use('/api', sseRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/collections', collectionsRoutes);
+app.use('/api/blogs', blogsRoutes);
+app.use('/api/discounts', discountsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/theme', themeRoutes);
+app.use('/api/config', configRoutes);
 app.use('/.netlify/functions/api/webhooks', webhookRoutes);
 app.use('/.netlify/functions/api/api', sseRoutes);
+app.use('/.netlify/functions/api/api/media', mediaRoutes);
+app.use('/.netlify/functions/api/api/products', productsRoutes);
+app.use('/.netlify/functions/api/api/collections', collectionsRoutes);
+app.use('/.netlify/functions/api/api/blogs', blogsRoutes);
+app.use('/.netlify/functions/api/api/discounts', discountsRoutes);
+app.use('/.netlify/functions/api/api/auth', authRoutes);
+app.use('/.netlify/functions/api/api/theme', themeRoutes);
+app.use('/.netlify/functions/api/api/config', configRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {
