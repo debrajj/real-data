@@ -4,7 +4,6 @@ import './assets/ella-theme/ella-master.css';
 import ComponentRenderer from './components/ComponentRenderer';
 import UnifiedDiscountAdmin from './components/UnifiedDiscountAdmin';
 import BestSellerAdmin from './components/BestSellerAdmin';
-import BestSellerManager from './components/BestSellerManager';
 
 
 
@@ -111,29 +110,6 @@ function App() {
     } finally {
       setIsSyncing(false);
     }
-  };
-
-
-
-  const handleBestSellerUpdate = (productIds) => {
-    if (!themeData) return;
-    
-    // Update the theme data with new product IDs
-    const updatedThemeData = { ...themeData };
-    const sections = updatedThemeData.rawData?.original?.current?.sections || {};
-    
-    // Find and update the best seller section
-    Object.keys(sections).forEach(key => {
-      if (sections[key].settings?.product_block_title === 'BEST SELLER') {
-        sections[key].settings.product_block_ids = productIds;
-        sections[key].settings.product_block_limit = productIds.length;
-        sections[key].settings.product_block_collection = '';
-      }
-    });
-    
-    setThemeData(updatedThemeData);
-    setError('✅ Best Seller products updated! Changes reflected in JSON below.');
-    setTimeout(() => setError(null), 3000);
   };
 
   // Shared function to get enriched data for display

@@ -13,6 +13,7 @@ function BestSellerManager({ themeData, onUpdate }) {
   useEffect(() => {
     fetchProducts();
     loadCurrentBestSellers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeData]);
 
   const fetchProducts = async () => {
