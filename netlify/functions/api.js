@@ -13,9 +13,16 @@ const blogsRoutes = require('../../routes/blogs');
 const discountsRoutes = require('../../routes/discounts');
 const authRoutes = require('../../routes/auth');
 const themeRoutes = require('../../routes/theme');
-const configRoutes = require('../../routes/config');
 
 dotenv.config();
+
+// Try to load config routes, but don't fail if missing
+let configRoutes;
+try {
+  configRoutes = require('../../routes/config');
+} catch (e) {
+  console.warn('Config routes not available');
+}
 
 const app = express();
 
@@ -66,7 +73,7 @@ app.use('/api/blogs', blogsRoutes);
 app.use('/api/discounts', discountsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/theme', themeRoutes);
-app.use('/api/config', configRoutes);
+if (configRoutes) app.use('/api/config', configRoutes);
 app.use('/.netlify/functions/api/webhooks', webhookRoutes);
 app.use('/.netlify/functions/api/api', sseRoutes);
 app.use('/.netlify/functions/api/api/media', mediaRoutes);
@@ -76,7 +83,7 @@ app.use('/.netlify/functions/api/api/blogs', blogsRoutes);
 app.use('/.netlify/functions/api/api/discounts', discountsRoutes);
 app.use('/.netlify/functions/api/api/auth', authRoutes);
 app.use('/.netlify/functions/api/api/theme', themeRoutes);
-app.use('/.netlify/functions/api/api/config', configRoutes);
+if (configRoutes) app.use('/.netlify/functions/api/api/config', configRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {
