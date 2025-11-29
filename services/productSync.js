@@ -126,6 +126,27 @@ async function deleteProduct(shopDomain, productId) {
 async function getProducts(shopDomain, options = {}) {
   const query = { shopDomain };
   
+  // Filter by specific product IDs if provided
+  if (options.ids && options.ids.length > 0) {
+    query.productId = { $in: options.ids };
+    
+    // Fetch products and maintain the order of IDs
+    const products = await Product.find(query)
+      .select('-rawData')
+      .lean();
+    
+    // Sort products to match the order of IDs provided
+    const orderedProducts = [];
+    for (const id of options.ids) {
+      const product = products.find(p => p.productId === id);
+      if (product) {
+        orderedProducts.push(product);
+      }
+    }
+    
+    return orderedProducts;
+  }
+  
   if (options.status) {
     query.status = options.status;
   }
@@ -138,9 +159,30 @@ async function getProducts(shopDomain, options = {}) {
     query.vendor = options.vendor;
   }
 
+  // Filter by collection if provided
+  if (options.collection) {
+    const Collection = require('../models/Collection');
+    
+    // Find collection by handle
+    const collection = await Collection.findOne({
+      shopDomain,
+      handle: options.collection
+    });
+    
+    if (collection) {
+      // Filter products that have this collection ID
+      query.collections = collection.collectionId;
+    } else {
+      console.warn(`⚠️ Collection not found: ${options.collection}`);
+      // Return empty array if collection doesn't exist
+      return [];
+    }
+  }
+
   const products = await Product.find(query)
     .select('-rawData')
     .sort({ createdAt: -1 })
+    .allowDiskUse(true)
     .limit(options.limit || 250)
     .lean();
 

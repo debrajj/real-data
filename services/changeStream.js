@@ -59,6 +59,7 @@ function initializeChangeStream() {
           const media = await Media.find({ shopDomain: fullDocument.shopDomain })
             .select('-data')
             .sort({ createdAt: -1 })
+            .allowDiskUse(true)
             .limit(100)
             .lean();
 

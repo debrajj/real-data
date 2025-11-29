@@ -12,6 +12,7 @@ router.get('/:shopDomain', async (req, res) => {
 
     const blogs = await Blog.find({ shopDomain })
       .sort({ created_at: -1 })
+      .allowDiskUse(true)
       .lean();
 
     res.json({
@@ -44,6 +45,7 @@ router.get('/:shopDomain/articles', async (req, res) => {
 
     const articles = await Article.find(query)
       .sort({ published_at: -1 })
+      .allowDiskUse(true)
       .limit(parseInt(limit) || 50)
       .lean();
 

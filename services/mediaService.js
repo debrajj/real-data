@@ -235,6 +235,7 @@ class MediaService {
     const media = await Media.find(query)
       .select('-data') // Exclude binary data
       .sort({ createdAt: -1 })
+      .allowDiskUse(true)
       .limit(options.limit || 100);
 
     return media.map(m => ({

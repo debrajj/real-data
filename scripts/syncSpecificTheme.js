@@ -2,7 +2,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 const SHOP_DOMAIN = process.env.SHOPIFY_SHOP_DOMAIN || 'cmstestingg.myshopify.com';
-const THEME_ID = '153818169572'; // Your draft theme ID
+const THEME_ID = process.env.SHOPIFY_THEME_ID || '154029457636'; // Your draft theme ID
 const API_URL = 'http://localhost:3001'; // Change to your deployed URL if needed
 
 async function syncTheme() {

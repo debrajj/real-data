@@ -1,6 +1,17 @@
 import React from 'react';
 import './ComponentRenderer.css';
+import './ThemeComponents.css';
 import UniversalRenderer from './UniversalRenderer';
+import {
+  SlideShow,
+  SpotlightBlock,
+  ProductBlock,
+  ProductTabBlock,
+  StickyScrollingBanner,
+  VideoBlock,
+  CustomServiceBlock,
+  Instagram
+} from './ThemeComponents';
 
 // Component mapping - specific renderers for common sections
 const componentMap = {
@@ -18,6 +29,15 @@ const componentMap = {
   ImageWithText: ImageWithTextComponent,
   Video: VideoComponent,
   Newsletter: NewsletterComponent,
+  // New theme components
+  SlideShow: SlideShow,
+  SpotlightBlock: SpotlightBlock,
+  ProductBlock: ProductBlock,
+  ProductTabBlock: ProductTabBlock,
+  StickyScrollingBanner: StickyScrollingBanner,
+  VideoBlock: VideoBlock,
+  CustomServiceBlock: CustomServiceBlock,
+  Instagram: Instagram,
 };
 
 function ComponentRenderer({ components, theme, media = [] }) {
@@ -69,23 +89,185 @@ function getThemeStyles(theme) {
 
 // Component implementations
 function HeaderComponent(props) {
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  
+  const menuItems = props.menu || [];
+  const iconSize = props.icons_width || 24;
+  
   return (
-    <header className="header-component">
-      <div className="header-inner">
+    <header className="header-component" style={{
+      backgroundColor: props.bg_color || '#ffffff',
+      borderBottom: '1px solid #e5e5e5',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000
+    }}>
+      <div className="header-inner" style={{
+        maxWidth: '1470px',
+        margin: '0 auto',
+        padding: '1rem 2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
         <div className="logo">
           {props.logo ? (
-            <img src={props.logo} alt="Logo" style={{ height: props.logo_height || '36px' }} />
-          ) : (
-            <span className="logo-text">{props.logo_text || '🛍️ Store'}</span>
+            <a href="/">
+              <img 
+                src={props.logo} 
+                alt={props.logo_text || 'Store Logo'} 
+                style={{ 
+                  height: 'auto',
+                  width: `${props.logo_width || 145}px`,
+                  maxHeight: '60px'
+                }} 
+              />
+            </a>
+          ) : props.logo_text ? (
+            <a href="/" style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 'bold', 
+              textDecoration: 'none',
+              color: props.logo_color || '#000'
+            }}>
+              {props.logo_text}
+            </a>
+          ) : null}
+        </div>
+        
+        {/* Desktop Navigation */}
+        <nav className="nav desktop-nav" style={{
+          display: 'flex',
+          gap: '2rem',
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center'
+        }}>
+          {menuItems.map((item, index) => (
+            <a 
+              key={index}
+              href={item.url} 
+              style={{
+                textDecoration: 'none',
+                color: props.menu_color || '#333',
+                fontSize: '1rem',
+                fontWeight: '500',
+                transition: 'color 0.3s'
+              }}
+              onMouseEnter={(e) => e.target.style.color = props.menu_hover_color || '#666'}
+              onMouseLeave={(e) => e.target.style.color = props.menu_color || '#333'}
+            >
+              {item.title}
+            </a>
+          ))}
+        </nav>
+        
+        {/* Header Icons */}
+        <div className="header-icons" style={{
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'center'
+        }}>
+          {props.show_search !== false && (
+            <a href="/search" style={{ 
+              textDecoration: 'none', 
+              color: props.menu_color || '#333',
+              fontSize: `${iconSize}px`
+            }}>
+              🔍
+            </a>
+          )}
+          {props.show_customer !== false && (
+            <a href="/account" style={{ 
+              textDecoration: 'none', 
+              color: props.menu_color || '#333',
+              fontSize: `${iconSize}px`
+            }}>
+              👤
+            </a>
+          )}
+          {props.show_wishlist !== false && (
+            <a href="/pages/wishlist" style={{ 
+              textDecoration: 'none', 
+              color: props.menu_color || '#333',
+              fontSize: `${iconSize}px`
+            }}>
+              ❤️
+            </a>
+          )}
+          {props.show_cart !== false && (
+            <a href="/cart" style={{
+              textDecoration: 'none',
+              color: props.menu_color || '#333',
+              fontSize: `${iconSize}px`
+            }}>
+              🛒
+            </a>
           )}
         </div>
-        <nav className="nav">
-          <a href="/">Home</a>
-          <a href="/collections">Shop</a>
-          <a href="/pages/about">About</a>
-          <a href="/cart">Cart</a>
-        </nav>
+        
+        {/* Mobile Menu Button */}
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          style={{
+            display: 'none',
+            background: 'none',
+            border: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          {mobileMenuOpen ? '✕' : '☰'}
+        </button>
       </div>
+      
+      {/* Mobile Navigation */}
+      {mobileMenuOpen && (
+        <nav className="mobile-nav" style={{
+          display: 'none',
+          flexDirection: 'column',
+          padding: '1rem 2rem',
+          backgroundColor: props.bg_color || '#ffffff',
+          borderTop: '1px solid #e5e5e5'
+        }}>
+          {menuItems.map((item, index) => (
+            <a 
+              key={index}
+              href={item.url} 
+              style={{
+                textDecoration: 'none',
+                color: props.menu_color || '#333',
+                padding: '0.75rem 0',
+                borderBottom: '1px solid #f0f0f0'
+              }}
+            >
+              {item.title}
+            </a>
+          ))}
+          <a href="/cart" style={{
+            textDecoration: 'none',
+            color: props.menu_color || '#333',
+            padding: '0.75rem 0'
+          }}>
+            🛒 Cart
+          </a>
+        </nav>
+      )}
+      
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-nav {
+            display: none !important;
+          }
+          .mobile-menu-btn {
+            display: block !important;
+          }
+          .mobile-nav {
+            display: flex !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }
@@ -99,7 +281,118 @@ function AnnouncementBarComponent(props) {
   );
 }
 
-function BannerComponent(props) {
+function BannerComponent({ blocks, ...props }) {
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 768);
+  
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // If blocks exist, render each block as a banner
+  if (blocks && blocks.length > 0) {
+    return (
+      <div className="banner-wrapper" style={{
+        marginTop: `${props.mg_top_desktop || 0}px`,
+        marginBottom: `${props.mg_bottom_desktop || 0}px`,
+        backgroundColor: props.bg_color || 'transparent'
+      }}>
+        <div style={{ maxWidth: `${props.container || 1470}px`, margin: '0 auto' }}>
+          {blocks.map((block, index) => {
+            const imageUrl = isMobile 
+              ? (block.settings.mobile_image || block.settings.image)
+              : block.settings.image;
+            
+            const heading = isMobile 
+              ? (block.settings.heading_mb || block.settings.heading)
+              : block.settings.heading;
+            
+            const subTitle = block.settings.sub_title;
+            const text = block.settings.text;
+            const buttonText = block.settings.btn_text;
+            
+            return (
+              <div 
+                key={block.id || index}
+                className="banner-component" 
+                style={{ 
+                  backgroundImage: imageUrl ? `url(${imageUrl})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  minHeight: '400px',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  borderRadius: `${block.settings.border_radius || 0}px`,
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: block.settings.align_items || 'center',
+                  justifyContent: block.settings.position || 'center'
+                }}
+              >
+                {(heading || subTitle || text || buttonText) && (
+                  <div className="banner-content" style={{
+                    textAlign: block.settings.align || 'center',
+                    maxWidth: `${block.settings.content_width || 400}px`,
+                    backgroundColor: block.settings.bg_color_content || 'rgba(0, 0, 0, 0.3)',
+                    padding: '2rem',
+                    borderRadius: '8px'
+                  }}>
+                    {subTitle && (
+                      <p className="banner-subtitle" style={{
+                        color: isMobile ? block.settings.color_sub_title_mb : block.settings.color_sub_title,
+                        fontSize: `${isMobile ? block.settings.font_size_sub_title_mb : block.settings.font_size_sub_title}px`,
+                        fontWeight: block.settings.font_weight_sub_title || '700',
+                        marginBottom: `${block.settings.margin_bottom_sub_title || 14}px`
+                      }}>
+                        {subTitle}
+                      </p>
+                    )}
+                    {heading && (
+                      <h2 className="banner-heading" style={{
+                        color: isMobile ? block.settings.color_heading_mb : block.settings.color_heading,
+                        fontSize: `${isMobile ? block.settings.font_size_heading_mb : block.settings.font_size_heading}px`,
+                        fontWeight: block.settings.font_weight_heading || '600',
+                        marginBottom: `${block.settings.margin_bottom_heading || 35}px`,
+                        fontStyle: block.settings.enable_style_italic ? 'italic' : 'normal'
+                      }}>
+                        {heading}
+                      </h2>
+                    )}
+                    {text && (
+                      <p className="banner-text" style={{
+                        color: isMobile ? block.settings.color_des_mb : block.settings.color_des,
+                        fontSize: `${isMobile ? block.settings.font_size_des_mb : block.settings.font_size_des}px`,
+                        lineHeight: `${block.settings.line_height_des || 26}px`,
+                        marginBottom: `${block.settings.margin_bottom_des || 45}px`
+                      }}>
+                        {text}
+                      </p>
+                    )}
+                    {buttonText && (
+                      <a 
+                        href={block.settings.link || '#'} 
+                        className="banner-btn button"
+                        style={{
+                          minWidth: `${block.settings.button_1_width || 200}px`,
+                          color: block.settings.button_color || '#ffffff',
+                          backgroundColor: block.settings.button_background || '#000000',
+                          border: `1px solid ${block.settings.button_border || '#000000'}`
+                        }}
+                      >
+                        {buttonText}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  
+  // Fallback for simple banner without blocks
   const hasImage = props.image || props.image_url || props.desktop_image;
   const heading = props.heading || props.title || 'Welcome to our store';
   const text = props.text || props.description || 'Discover amazing products';

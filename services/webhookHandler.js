@@ -128,6 +128,46 @@ const eventHandlers = {
     return { action: 'customer_marketing_consent_updated', customerId: payload.customer_id };
   },
 
+  'customers/email_marketing_consent/update': async (shopDomain, payload) => {
+    console.log(`📧 Customer email marketing consent updated: ${payload.customer_id}`);
+    return { action: 'customer_email_marketing_consent_updated', customerId: payload.customer_id };
+  },
+
+  'customers_marketing_consent/sms_update': async (shopDomain, payload) => {
+    console.log(`📱 Customer SMS marketing consent updated: ${payload.customer_id}`);
+    return { action: 'customer_sms_marketing_consent_updated', customerId: payload.customer_id };
+  },
+
+  'customer_groups/create': async (shopDomain, payload) => {
+    console.log(`👥 Customer group created: ${payload.id}`);
+    return { action: 'customer_group_created', groupId: payload.id };
+  },
+
+  'customer_groups/update': async (shopDomain, payload) => {
+    console.log(`👥 Customer group updated: ${payload.id}`);
+    return { action: 'customer_group_updated', groupId: payload.id };
+  },
+
+  'customer_groups/delete': async (shopDomain, payload) => {
+    console.log(`👥 Customer group deleted: ${payload.id}`);
+    return { action: 'customer_group_deleted', groupId: payload.id };
+  },
+
+  'customer_payment_methods/create': async (shopDomain, payload) => {
+    console.log(`💳 Customer payment method created: ${payload.id}`);
+    return { action: 'customer_payment_method_created', paymentMethodId: payload.id };
+  },
+
+  'customer_payment_methods/update': async (shopDomain, payload) => {
+    console.log(`💳 Customer payment method updated: ${payload.id}`);
+    return { action: 'customer_payment_method_updated', paymentMethodId: payload.id };
+  },
+
+  'customer_payment_methods/revoke': async (shopDomain, payload) => {
+    console.log(`💳 Customer payment method revoked: ${payload.id}`);
+    return { action: 'customer_payment_method_revoked', paymentMethodId: payload.id };
+  },
+
   // Order events
   'orders/create': async (shopDomain, payload) => {
     console.log(`📦 Order created: ${payload.id} - ${payload.order_number}`);
@@ -281,6 +321,184 @@ const eventHandlers = {
     console.log(`🎫 Discount deleted: ${payload.id}`);
     return { action: 'discount_deleted', discountId: payload.id };
   },
+
+  // Discount events
+  'discounts/create': async (shopDomain, payload) => {
+    console.log(`🎫 Discount created: ${payload.id}`);
+    return { action: 'discount_created', discountId: payload.id };
+  },
+
+  'discounts/update': async (shopDomain, payload) => {
+    console.log(`🎫 Discount updated: ${payload.id}`);
+    return { action: 'discount_updated', discountId: payload.id };
+  },
+
+  'discounts/delete': async (shopDomain, payload) => {
+    console.log(`🎫 Discount deleted: ${payload.id}`);
+    return { action: 'discount_deleted', discountId: payload.id };
+  },
+
+  // Fulfillment order events
+  'fulfillment_orders/scheduled_fulfillment_order_ready': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order ready: ${payload.id}`);
+    return { action: 'fulfillment_order_ready', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/hold_released': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order hold released: ${payload.id}`);
+    return { action: 'fulfillment_order_hold_released', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/order_routing_complete': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order routing complete: ${payload.id}`);
+    return { action: 'fulfillment_order_routing_complete', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/placed_on_hold': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order placed on hold: ${payload.id}`);
+    return { action: 'fulfillment_order_placed_on_hold', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/rescheduled': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order rescheduled: ${payload.id}`);
+    return { action: 'fulfillment_order_rescheduled', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/cancellation_request_submitted': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order cancellation requested: ${payload.id}`);
+    return { action: 'fulfillment_order_cancellation_requested', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/cancellation_request_accepted': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order cancellation accepted: ${payload.id}`);
+    return { action: 'fulfillment_order_cancellation_accepted', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/cancellation_request_rejected': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order cancellation rejected: ${payload.id}`);
+    return { action: 'fulfillment_order_cancellation_rejected', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/cancelled': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order cancelled: ${payload.id}`);
+    return { action: 'fulfillment_order_cancelled', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/fulfillment_request_submitted': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment request submitted: ${payload.id}`);
+    return { action: 'fulfillment_request_submitted', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/fulfillment_request_accepted': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment request accepted: ${payload.id}`);
+    return { action: 'fulfillment_request_accepted', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/fulfillment_request_rejected': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment request rejected: ${payload.id}`);
+    return { action: 'fulfillment_request_rejected', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/line_items_prepared_for_pickup': async (shopDomain, payload) => {
+    console.log(`📦 Line items prepared for pickup: ${payload.id}`);
+    return { action: 'line_items_prepared_for_pickup', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/line_items_prepared_for_local_delivery': async (shopDomain, payload) => {
+    console.log(`📦 Line items prepared for local delivery: ${payload.id}`);
+    return { action: 'line_items_prepared_for_local_delivery', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/moved': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order moved: ${payload.id}`);
+    return { action: 'fulfillment_order_moved', fulfillmentOrderId: payload.id };
+  },
+
+  'fulfillment_orders/merged': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment orders merged`);
+    return { action: 'fulfillment_orders_merged' };
+  },
+
+  'fulfillment_orders/split': async (shopDomain, payload) => {
+    console.log(`📦 Fulfillment order split: ${payload.id}`);
+    return { action: 'fulfillment_order_split', fulfillmentOrderId: payload.id };
+  },
+
+  // Inventory item events
+  'inventory_items/create': async (shopDomain, payload) => {
+    console.log(`📦 Inventory item created: ${payload.id}`);
+    return { action: 'inventory_item_created', inventoryItemId: payload.id };
+  },
+
+  'inventory_items/update': async (shopDomain, payload) => {
+    console.log(`📦 Inventory item updated: ${payload.id}`);
+    return { action: 'inventory_item_updated', inventoryItemId: payload.id };
+  },
+
+  'inventory_items/delete': async (shopDomain, payload) => {
+    console.log(`📦 Inventory item deleted: ${payload.id}`);
+    return { action: 'inventory_item_deleted', inventoryItemId: payload.id };
+  },
+
+  // Location events
+  'locations/create': async (shopDomain, payload) => {
+    console.log(`📍 Location created: ${payload.id} - ${payload.name}`);
+    return { action: 'location_created', locationId: payload.id };
+  },
+
+  'locations/update': async (shopDomain, payload) => {
+    console.log(`📍 Location updated: ${payload.id} - ${payload.name}`);
+    return { action: 'location_updated', locationId: payload.id };
+  },
+
+  'locations/delete': async (shopDomain, payload) => {
+    console.log(`📍 Location deleted: ${payload.id}`);
+    return { action: 'location_deleted', locationId: payload.id };
+  },
+
+  'locations/activate': async (shopDomain, payload) => {
+    console.log(`📍 Location activated: ${payload.id}`);
+    return { action: 'location_activated', locationId: payload.id };
+  },
+
+  'locations/deactivate': async (shopDomain, payload) => {
+    console.log(`📍 Location deactivated: ${payload.id}`);
+    return { action: 'location_deactivated', locationId: payload.id };
+  },
+
+  // Market events
+  'markets/create': async (shopDomain, payload) => {
+    console.log(`🌍 Market created: ${payload.id}`);
+    return { action: 'market_created', marketId: payload.id };
+  },
+
+  'markets/update': async (shopDomain, payload) => {
+    console.log(`🌍 Market updated: ${payload.id}`);
+    return { action: 'market_updated', marketId: payload.id };
+  },
+
+  'markets/delete': async (shopDomain, payload) => {
+    console.log(`🌍 Market deleted: ${payload.id}`);
+    return { action: 'market_deleted', marketId: payload.id };
+  },
+
+  // Tender transaction events
+  'tender_transactions/create': async (shopDomain, payload) => {
+    console.log(`💰 Tender transaction created: ${payload.id}`);
+    return { action: 'tender_transaction_created', transactionId: payload.id };
+  },
+
+  // Transaction events
+  'transactions/create': async (shopDomain, payload) => {
+    console.log(`💳 Transaction created: ${payload.id}`);
+    return { action: 'transaction_created', transactionId: payload.id };
+  },
+
+  // Order risk assessment
+  'order_transactions/create': async (shopDomain, payload) => {
+    console.log(`💳 Order transaction created: ${payload.id}`);
+    return { action: 'order_transaction_created', transactionId: payload.id };
+  },
 };
 
 /**
@@ -345,6 +563,7 @@ async function getWebhookEvents(shopDomain, options = {}) {
   
   const events = await WebhookEvent.find(query)
     .sort({ createdAt: -1 })
+    .allowDiskUse(true)
     .limit(options.limit || 100)
     .lean();
   

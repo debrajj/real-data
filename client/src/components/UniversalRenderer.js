@@ -19,7 +19,7 @@ function UniversalRenderer({ component, blocks = [], props = {}, media = [] }) {
     
     if (mediaItem) {
       const API_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3001'
+        ? (process.env.REACT_APP_API_URL || 'http://localhost:3002')
         : window.location.origin;
       return `${API_URL}${mediaItem.url}`;
     }

@@ -54,8 +54,89 @@ async function handleThemeUpdate(shopDomain, themeId) {
       }
     }
     
+    // Fetch header-group.json
+    console.log('📥 Fetching header-group.json...');
+    let headerGroupData = null;
+    try {
+      const headerAsset = await shopifyAPI.getThemeAsset(activeThemeId, 'sections/header-group.json');
+      if (headerAsset && headerAsset.value) {
+        headerGroupData = JSON.parse(headerAsset.value);
+        console.log('✅ Found header-group.json');
+      }
+    } catch (error) {
+      console.log('⚠️ No header-group.json found');
+    }
+    
+    // Fetch menu data
+    let menuData = [];
+    if (headerGroupData) {
+      try {
+        // Find the main_menu block
+        const headerSection = headerGroupData.sections['deb8dcfc-6e5c-495d-ad01-12fa1389160b'];
+        if (headerSection && headerSection.blocks) {
+          const menuBlock = Object.values(headerSection.blocks).find(b => b.type === 'main_menu');
+          if (menuBlock && menuBlock.settings && menuBlock.settings.menu) {
+            const menuHandle = menuBlock.settings.menu;
+            console.log(`📥 Fetching menu: ${menuHandle}...`);
+            const menu = await shopifyAPI.getMenu(menuHandle);
+            if (menu && menu.links) {
+              menuData = menu.links.map(link => ({
+                title: link.title,
+                url: link.url
+              }));
+              console.log(`✅ Found ${menuData.length} menu items`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Could not fetch menu data:', error.message);
+      }
+    }
+    
     // Add header and footer if they exist in settings_data
     const globalSections = {};
+    
+    // Add header section with actual data
+    console.log('📥 Adding header section...');
+    const headerSection = headerGroupData?.sections['deb8dcfc-6e5c-495d-ad01-12fa1389160b'];
+    const headerBlocks = headerSection?.blocks || {};
+    
+    const logoBlock = Object.values(headerBlocks).find(b => b.type === 'logo');
+    const iconsBlock = Object.values(headerBlocks).find(b => b.type === 'header_icons');
+    
+    // Get shop info for store name
+    let shopInfo = null;
+    try {
+      shopInfo = await shopifyAPI.getShopInfo();
+      console.log('✅ Got shop info:', shopInfo?.name);
+    } catch (error) {
+      console.log('⚠️ Could not fetch shop info');
+    }
+    
+    globalSections['header'] = {
+      type: 'header',
+      settings: {
+        logo: logoBlock?.settings?.logo || null,
+        logo_width: logoBlock?.settings?.logo_width || 145,
+        logo_text: logoBlock?.settings?.logo_text || shopInfo?.name || shopDomain.split('.')[0],
+        menu: menuData.length > 0 ? menuData : [
+          { title: 'Home', url: '/' },
+          { title: 'Party Decoration', url: '/collections/party-decoration' },
+          { title: 'Return Gifts', url: '/collections/return-gifts' },
+          { title: 'Soft Toys', url: '/collections/soft-toys' },
+          { title: 'Stationery', url: '/collections/stationery' }
+        ],
+        // Header icons settings
+        show_search: iconsBlock?.settings?.show_search !== false,
+        show_customer: iconsBlock?.settings?.show_customer !== false,
+        show_wishlist: iconsBlock?.settings?.show_wishlist !== false,
+        show_cart: iconsBlock?.settings?.show_cart !== false,
+        icons_width: iconsBlock?.settings?.icons_width || 24,
+        bg_color: headerSection?.settings?.header_navigation_bg || '#ffffff'
+      }
+    };
+    console.log('✅ Header section added with', menuData.length || 5, 'menu items');
+    
     if (settingsData.current?.sections) {
       // Look for header and footer in global sections
       Object.entries(settingsData.current.sections).forEach(([key, section]) => {
@@ -170,6 +251,7 @@ async function handleThemeUpdate(shopDomain, themeId) {
 
     const themeDataDoc = {
       shopDomain,
+      storeName: 'kidsszone',
       themeId: activeThemeId,
       themeName: settingsData.current?.name || 'Unknown',
       components: parsedData.components, // Home page components

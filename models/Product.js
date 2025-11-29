@@ -65,6 +65,7 @@ const productSchema = new mongoose.Schema({
   published_scope: String,
   tags: String,
   admin_graphql_api_id: String,
+  collections: [String], // Array of collection IDs this product belongs to
   variants: [productVariantSchema],
   options: [{
     id: String,

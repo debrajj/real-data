@@ -29,32 +29,119 @@ router.get('/stream', (req, res) => {
   });
 });
 
+// Health check endpoint
+router.get('/health', async (req, res) => {
+  try {
+    const shopDomain = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN;
+    const themeCount = await ThemeData.countDocuments({ shopDomain });
+    
+    res.json({
+      success: true,
+      database: 'connected',
+      shopDomain,
+      themeDataCount: themeCount,
+      message: themeCount === 0 ? 'No theme data found - run sync first' : 'Theme data available'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get current theme data with media
 router.get('/theme-data', async (req, res) => {
   try {
     const shopDomain = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN;
+    const themeId = req.query.themeId || process.env.SHOPIFY_THEME_ID;
     
-    const themeData = await ThemeData.findOne({ shopDomain })
+    // If themeId is specified, use it; otherwise get the most recent
+    const query = themeId 
+      ? { shopDomain, themeId }
+      : { shopDomain };
+    
+    const themeData = await ThemeData.findOne(query)
       .sort({ updatedAt: -1 })
+      .allowDiskUse(true)
       .lean();
     
     if (!themeData) {
-      return res.status(404).json({ error: 'No theme data found' });
+      // Create sample theme data if none exists
+      const sampleThemeData = {
+        shopDomain,
+        themeId: themeId || 'sample-theme',
+        themeName: 'Sample Theme',
+        components: [
+          {
+            component: 'Header',
+            props: {
+              logo: 'Sample Store',
+              navigation: ['Home', 'Products', 'About', 'Contact']
+            }
+          },
+          {
+            component: 'Banner',
+            props: {
+              title: 'Welcome to Sample Store',
+              subtitle: 'No theme data found - please run sync to load actual theme data',
+              buttonText: 'Sync Now',
+              buttonLink: '#'
+            }
+          }
+        ],
+        pages: {
+          index: {
+            components: [
+              {
+                component: 'Header',
+                props: { logo: 'Sample Store' }
+              },
+              {
+                component: 'Banner',
+                props: {
+                  title: 'Sample Theme Data',
+                  subtitle: 'Run sync to load actual Shopify theme'
+                }
+              }
+            ]
+          }
+        },
+        theme: {
+          colors: {
+            primary: '#000000',
+            secondary: '#ffffff'
+          }
+        },
+        version: 1
+      };
+      
+      return res.json({
+        success: true,
+        data: {
+          ...sampleThemeData,
+          media: [],
+          blogs: [],
+          articles: [],
+          customPages: []
+        },
+        message: 'Sample data - run sync to load actual theme'
+      });
     }
 
     // Get media for this shop
     const Media = require('../models/Media');
     const media = await Media.find({ shopDomain })
       .select('-data')
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 }) // Use _id instead of createdAt for better performance
+      .allowDiskUse(true)
       .limit(100)
-      .lean();
+      .lean()
+      .allowDiskUse(true);
     
     // Get blogs and articles for this shop
     const { Blog, Article } = require('../models/Blog');
     const blogs = await Blog.find({ shopDomain }).lean();
     const articles = await Article.find({ shopDomain })
       .sort({ published_at: -1 })
+      .allowDiskUse(true)
       .limit(50)
       .lean();
     

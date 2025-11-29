@@ -3,6 +3,47 @@ const router = express.Router();
 const { syncProduct, syncAllProducts, getProducts, getProduct } = require('../services/productSync');
 
 /**
+ * GET /api/products
+ * Get products with optional collection filter or specific IDs
+ */
+router.get('/', async (req, res) => {
+  try {
+    const shopDomain = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN || 'cmstestingg.myshopify.com';
+    const { status, product_type, vendor, limit, collection, ids } = req.query;
+
+    const options = {
+      status,
+      product_type,
+      vendor,
+      limit: parseInt(limit) || 250,
+    };
+
+    // If specific product IDs are provided, use them
+    if (ids) {
+      options.ids = ids.split(',').map(id => id.trim());
+    }
+    // Otherwise, if collection filter is provided, add it
+    else if (collection) {
+      options.collection = collection;
+    }
+
+    const products = await getProducts(shopDomain, options);
+
+    res.json({
+      success: true,
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching products:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/products/:shopDomain
  * Get all products for a shop
  */
@@ -112,3 +153,33 @@ router.post('/:shopDomain/:productId/sync', async (req, res) => {
 });
 
 module.exports = router;
+
+/**
+ * GET /api/collections/:shopDomain
+ * Get all collections for a shop
+ */
+router.get('/collections/:shopDomain', async (req, res) => {
+  try {
+    const { shopDomain } = req.params;
+    const ShopifyAPI = require('../services/shopifyAPI');
+    
+    const shopifyAPI = new ShopifyAPI(
+      shopDomain,
+      process.env.SHOPIFY_ACCESS_TOKEN
+    );
+
+    const collections = await shopifyAPI.getCollections();
+
+    res.json({
+      success: true,
+      count: collections.length,
+      collections,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching collections:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});

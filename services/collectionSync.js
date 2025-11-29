@@ -96,6 +96,7 @@ async function getCollections(shopDomain, options = {}) {
   const collections = await Collection.find(query)
     .select('-rawData')
     .sort({ createdAt: -1 })
+    .allowDiskUse(true)
     .limit(options.limit || 250)
     .lean();
 

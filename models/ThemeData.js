@@ -6,6 +6,11 @@ const themeDataSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  storeName: {
+    type: String,
+    default: 'kidsszone',
+    index: true,
+  },
   themeId: {
     type: String,
     required: true,
