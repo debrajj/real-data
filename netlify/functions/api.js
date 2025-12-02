@@ -13,6 +13,7 @@ const blogsRoutes = require('../../routes/blogs');
 const discountsRoutes = require('../../routes/discounts');
 const authRoutes = require('../../routes/auth');
 const themeRoutes = require('../../routes/theme');
+const configRoutes = require('../../routes/config');
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.use('/api/blogs', blogsRoutes);
 app.use('/api/discounts', discountsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/theme', themeRoutes);
+app.use('/api/config', configRoutes);
 app.use('/.netlify/functions/api/webhooks', webhookRoutes);
 app.use('/.netlify/functions/api/api', sseRoutes);
 app.use('/.netlify/functions/api/api/media', mediaRoutes);
@@ -74,6 +76,7 @@ app.use('/.netlify/functions/api/api/blogs', blogsRoutes);
 app.use('/.netlify/functions/api/api/discounts', discountsRoutes);
 app.use('/.netlify/functions/api/api/auth', authRoutes);
 app.use('/.netlify/functions/api/api/theme', themeRoutes);
+app.use('/.netlify/functions/api/api/config', configRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {
