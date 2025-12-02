@@ -80,7 +80,7 @@ router.get('/data', async (req, res) => {
       ...themeData,
       products,
       collections: enrichedCollections
-    });
+    }, shopDomain);
     
     res.json({
       success: true,

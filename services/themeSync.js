@@ -251,9 +251,9 @@ async function handleThemeUpdate(shopDomain, themeId) {
     }
 
     // Fix image URLs for production
-    const fixedComponents = fixImageUrlsInData(parsedData.components);
-    const fixedPages = fixImageUrlsInData(allPages);
-    const fixedTheme = fixImageUrlsInData(parsedData.theme);
+    const fixedComponents = fixImageUrlsInData(parsedData.components, shopDomain);
+    const fixedPages = fixImageUrlsInData(allPages, shopDomain);
+    const fixedTheme = fixImageUrlsInData(parsedData.theme, shopDomain);
     
     const themeDataDoc = {
       shopDomain,

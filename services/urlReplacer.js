@@ -71,7 +71,9 @@ class UrlReplacer {
     // Fallback conversion for shopify:// image URLs
     if (url.startsWith('shopify://shop_images/')) {
       const filename = url.replace('shopify://shop_images/', '');
-      return `https://${this.shopDomain}/cdn/shop/files/${filename}`;
+      // Extract shop name from domain (e.g., cmstestingg from cmstestingg.myshopify.com)
+      const shopName = this.shopDomain.split('.')[0];
+      return `https://${shopName}.myshopify.com/cdn/shop/files/${filename}`;
     }
     
     if (url.startsWith('shopify://files/videos/')) {
