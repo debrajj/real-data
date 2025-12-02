@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { handleThemeUpdate } = require('../services/themeSync');
 const ThemeData = require('../models/ThemeData');
+const { fixImageUrlsInData } = require('../utils/imageUrlFixer');
 
 /**
  * GET /api/theme/sync
@@ -74,13 +75,16 @@ router.get('/data', async (req, res) => {
       )
     }));
     
+    // Fix image URLs before sending response
+    const responseData = fixImageUrlsInData({
+      ...themeData,
+      products,
+      collections: enrichedCollections
+    });
+    
     res.json({
       success: true,
-      data: {
-        ...themeData,
-        products,
-        collections: enrichedCollections
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('❌ Error fetching theme data:', error);

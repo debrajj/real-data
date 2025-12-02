@@ -13,6 +13,7 @@ const blogsRoutes = require('./routes/blogs');
 const discountsRoutes = require('./routes/discounts');
 const authRoutes = require('./routes/auth');
 const themeRoutes = require('./routes/theme');
+const configRoutes = require('./routes/config');
 
 const { initializeChangeStream } = require('./services/changeStream');
 
@@ -49,6 +50,7 @@ app.use('/api/blogs', blogsRoutes);
 app.use('/api/discounts', discountsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/theme', themeRoutes);
+app.use('/api/config', configRoutes);
 
 
 // Serve static files from React build

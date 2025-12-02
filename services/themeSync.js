@@ -3,6 +3,7 @@ const ThemeParser = require('./themeParser');
 const ThemeData = require('../models/ThemeData');
 const Shop = require('../models/Shop');
 const MediaService = require('./mediaService');
+const { fixImageUrlsInData } = require('../utils/imageUrlFixer');
 
 async function handleThemeUpdate(shopDomain, themeId) {
   try {
@@ -249,16 +250,21 @@ async function handleThemeUpdate(shopDomain, themeId) {
       }
     }
 
+    // Fix image URLs for production
+    const fixedComponents = fixImageUrlsInData(parsedData.components);
+    const fixedPages = fixImageUrlsInData(allPages);
+    const fixedTheme = fixImageUrlsInData(parsedData.theme);
+    
     const themeDataDoc = {
       shopDomain,
       storeName: 'kidsszone',
       themeId: activeThemeId,
       themeName: settingsData.current?.name || 'Unknown',
-      components: parsedData.components, // Home page components
-      pages: allPages, // All page templates
-      theme: parsedData.theme, // Theme settings (colors, typography, etc.)
+      components: fixedComponents, // Home page components
+      pages: fixedPages, // All page templates
+      theme: fixedTheme, // Theme settings (colors, typography, etc.)
       rawData: {
-        theme: parsedData.theme,
+        theme: fixedTheme,
         original: settingsData,
       },
       version: existingThemeData ? existingThemeData.version + 1 : 1,

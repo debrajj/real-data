@@ -36,6 +36,14 @@ class UrlReplacer {
       return this.mediaMap.get(url);
     }
     
+    // Handle Shopify CDN URLs - ensure they're properly formatted
+    if (url.includes('cdn.shopify.com')) {
+      // Remove any query parameters that might cause issues
+      const cleanUrl = url.split('?')[0];
+      // Add version parameter to prevent caching issues
+      return `${cleanUrl}?v=${Date.now()}`;
+    }
+    
     // Handle collection URLs
     if (url.startsWith('shopify://collections/')) {
       const handle = url.replace('shopify://collections/', '');
@@ -91,7 +99,7 @@ class UrlReplacer {
     
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'string' && (value.startsWith('shopify://') || value.includes('cdn.shopify.com'))) {
+      if (typeof value === 'string' && (value.startsWith('shopify://') || value.includes('cdn.shopify.com') || value.includes('shopifycdn.com'))) {
         result[key] = this.convertUrl(value);
       } else if (typeof value === 'string' && key === 'collection' && value && !value.startsWith('http')) {
         // Convert collection handle to URL and add collection data placeholder
