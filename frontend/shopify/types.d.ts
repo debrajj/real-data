@@ -1,12 +1,15 @@
 // Type declarations for Shopify App Bridge custom elements
-declare namespace JSX {
-  interface IntrinsicElements {
-    'ui-nav-menu': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
-  }
-}
+import 'react';
 
-// Extend Window for Shopify App Bridge
 declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'ui-nav-menu': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        children?: React.ReactNode;
+      };
+    }
+  }
+
   interface Window {
     shopify?: {
       config: {
