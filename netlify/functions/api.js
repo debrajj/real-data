@@ -61,9 +61,23 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes - handle both with and without /.netlify/functions/api prefix
+// Routes - Netlify redirects /api/* to /.netlify/functions/api/*
+// So /api/config becomes /.netlify/functions/api/config
+// With basePath set, the routes receive paths without the base
 app.use('/webhooks', webhookRoutes);
-app.use('/api', sseRoutes);
+app.use('/stream', sseRoutes); // SSE endpoint
+app.use('/media', mediaRoutes);
+app.use('/products', productsRoutes);
+app.use('/collections', collectionsRoutes);
+app.use('/blogs', blogsRoutes);
+app.use('/discounts', discountsRoutes);
+app.use('/auth', authRoutes);
+app.use('/theme', themeRoutes);
+app.use('/config', configRoutes);
+app.use('/shopify', shopifyAuthRoutes);
+app.use('/session', sessionRoutes);
+
+// Also mount with /api prefix for direct function calls
 app.use('/api/media', mediaRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/collections', collectionsRoutes);
@@ -74,18 +88,6 @@ app.use('/api/theme', themeRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/shopify', shopifyAuthRoutes);
 app.use('/api/session', sessionRoutes);
-app.use('/.netlify/functions/api/webhooks', webhookRoutes);
-app.use('/.netlify/functions/api/api', sseRoutes);
-app.use('/.netlify/functions/api/api/media', mediaRoutes);
-app.use('/.netlify/functions/api/api/products', productsRoutes);
-app.use('/.netlify/functions/api/api/collections', collectionsRoutes);
-app.use('/.netlify/functions/api/api/blogs', blogsRoutes);
-app.use('/.netlify/functions/api/api/discounts', discountsRoutes);
-app.use('/.netlify/functions/api/api/auth', authRoutes);
-app.use('/.netlify/functions/api/api/theme', themeRoutes);
-app.use('/.netlify/functions/api/api/config', configRoutes);
-app.use('/.netlify/functions/api/api/shopify', shopifyAuthRoutes);
-app.use('/.netlify/functions/api/api/session', sessionRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {
