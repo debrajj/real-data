@@ -47,6 +47,24 @@ const ConfigView: React.FC<ConfigViewProps> = ({ initialConfig, onSave }) => {
     }
   }, [formData.clientName]);
 
+  // Auto-generate API URLs from shopDomain
+  useEffect(() => {
+    const shopDomain = (formData as any).shopDomain;
+    if (shopDomain) {
+      // Normalize domain
+      let domain = shopDomain.trim().toLowerCase();
+      if (!domain.includes('.myshopify.com')) {
+        domain = `${domain}.myshopify.com`;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        apiBaseUrl: `https://${domain}`,
+        adminApiBaseUrl: `https://${domain}/admin/api/2024-01`
+      }));
+    }
+  }, [(formData as any).shopDomain]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
