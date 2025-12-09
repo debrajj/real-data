@@ -63,7 +63,7 @@ body {
 
 /* Brand colors - can be customized per client */
 :root {
-  --brand-primary: #008060;
-  --brand-secondary: #004c3f;
-  --brand-accent: #95bf47;
+  --brand-primary: #E91E63;
+  --brand-secondary: #C2185B;
+  --brand-accent: #F06292;
 }

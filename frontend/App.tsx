@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import WelcomeView from './views/WelcomeView';
+import LoginView from './views/LoginView';
 import ConfigView from './views/ConfigView';
 import SyncSuccessView from './views/SyncSuccessView';
 import AdminDashboard from './views/AdminDashboard';
 import { AppConfig, AppEnvironment, AppView } from './types';
+import { sessionAPI, SessionData, clearSession } from './client/api';
+import { Loader2 } from 'lucide-react';
 
 // Default configuration for the form (empty state for new users)
 const defaultConfig: AppConfig = {
   clientName: '',
-  clientKey: '', // Will be auto-generated
-  apiBaseUrl: 'https://api.example.com/app',
-  adminApiBaseUrl: 'https://api.example.com/app/admin',
+  clientKey: '',
+  apiBaseUrl: '',
+  adminApiBaseUrl: '',
   appName: '',
   primaryColor: '#E91E63',
-  bundleId: 'com.example.app',
-  packageName: 'com.example.app',
+  bundleId: '',
+  packageName: '',
   logoUrl: '',
   environment: AppEnvironment.DEV,
   storefrontToken: '',
@@ -23,6 +26,8 @@ const defaultConfig: AppConfig = {
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.WELCOME);
+  const [loading, setLoading] = useState(true);
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
   
   // Store configs for both environments
   const [appConfigs, setAppConfigs] = useState<Record<string, AppConfig>>({
@@ -30,34 +35,147 @@ const App: React.FC = () => {
     [AppEnvironment.PROD]: { ...defaultConfig, environment: AppEnvironment.PROD }
   });
 
-  const handleNewStart = () => {
-    // Reset config for new user, keep defaults
+  // Check for existing session on mount
+  useEffect(() => {
+    checkExistingSession();
+  }, []);
+
+  const checkExistingSession = async () => {
+    try {
+      // Check if we have a stored session
+      const storedSession = sessionAPI.getStoredSession();
+      
+      if (storedSession) {
+        // Validate the session with the server
+        const validation = await sessionAPI.validate();
+        
+        if (validation.valid && validation.session) {
+          console.log('✅ Session restored:', validation.session.shopInfo?.name);
+          setSessionData({
+            token: storedSession.token,
+            clientKey: validation.session.clientKey,
+            shopDomain: validation.session.shopDomain,
+            shopInfo: validation.session.shopInfo,
+          });
+          
+          // Update configs from session
+          updateConfigsFromSession(validation.session);
+          setCurrentView(AppView.DASHBOARD);
+        } else {
+          // Invalid session, clear it
+          clearSession();
+          setCurrentView(AppView.WELCOME);
+        }
+      } else {
+        setCurrentView(AppView.WELCOME);
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      clearSession();
+      setCurrentView(AppView.WELCOME);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateConfigsFromSession = (session: any) => {
+    const config: AppConfig = {
+      clientName: session.shopInfo?.name || '',
+      clientKey: session.clientKey,
+      apiBaseUrl: `https://${session.shopDomain}`,
+      adminApiBaseUrl: `https://${session.shopDomain}/admin/api/2024-01`,
+      appName: session.shopInfo?.name || '',
+      primaryColor: session.config?.primaryColor || '#E91E63',
+      bundleId: `com.${session.clientKey.replace(/-/g, '')}.app`,
+      packageName: `com.${session.clientKey.replace(/-/g, '')}.app`,
+      logoUrl: session.config?.logoUrl || '',
+      environment: AppEnvironment.PROD,
+      storefrontToken: '',
+      adminShopToken: '',
+    };
+
     setAppConfigs({
-        [AppEnvironment.DEV]: { ...defaultConfig, environment: AppEnvironment.DEV },
-        [AppEnvironment.PROD]: { ...defaultConfig, environment: AppEnvironment.PROD }
+      [AppEnvironment.DEV]: { ...config, environment: AppEnvironment.DEV },
+      [AppEnvironment.PROD]: { ...config, environment: AppEnvironment.PROD }
     });
-    setCurrentView(AppView.CONFIGURATION);
+  };
+
+  const handleNewStart = () => {
+    // Go to login view for new users
+    setCurrentView(AppView.LOGIN as AppView);
   };
 
   const handleExistingConnect = (configs: Record<string, AppConfig>) => {
     setAppConfigs(configs);
-    // Onboard existing clients directly to dashboard
     setCurrentView(AppView.DASHBOARD);
+  };
+
+  const handleLoginSuccess = (session: SessionData) => {
+    setSessionData(session);
+    
+    // Update configs from session
+    const config: AppConfig = {
+      clientName: session.shopInfo?.name || '',
+      clientKey: session.clientKey,
+      apiBaseUrl: `https://${session.shopDomain}`,
+      adminApiBaseUrl: `https://${session.shopDomain}/admin/api/2024-01`,
+      appName: session.shopInfo?.name || '',
+      primaryColor: '#E91E63',
+      bundleId: `com.${session.clientKey.replace(/-/g, '')}.app`,
+      packageName: `com.${session.clientKey.replace(/-/g, '')}.app`,
+      logoUrl: '',
+      environment: AppEnvironment.PROD,
+      storefrontToken: '',
+      adminShopToken: '',
+    };
+
+    setAppConfigs({
+      [AppEnvironment.DEV]: { ...config, environment: AppEnvironment.DEV },
+      [AppEnvironment.PROD]: { ...config, environment: AppEnvironment.PROD }
+    });
+
+    // New clients go to success screen, existing go to dashboard
+    if (session.isNewClient) {
+      setCurrentView(AppView.SYNC_SUCCESS);
+    } else {
+      setCurrentView(AppView.DASHBOARD);
+    }
   };
 
   const handleConfigSave = (configs: Record<string, AppConfig>) => {
     setAppConfigs(configs);
-    // New users go to success screen first
     setCurrentView(AppView.SYNC_SUCCESS);
   };
 
-  const handleLogout = () => {
-    // In a real app, clear tokens/session here
+  const handleLogout = async () => {
+    try {
+      await sessionAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    setSessionData(null);
+    setAppConfigs({
+      [AppEnvironment.DEV]: { ...defaultConfig, environment: AppEnvironment.DEV },
+      [AppEnvironment.PROD]: { ...defaultConfig, environment: AppEnvironment.PROD }
+    });
     setCurrentView(AppView.WELCOME);
   };
 
-  // Helper to get a safe config for the initial view (usually Dev)
-  const initialConfig = appConfigs[AppEnvironment.DEV] || defaultConfig;
+  // Helper to get a safe config for the initial view
+  const initialConfig = appConfigs[AppEnvironment.PROD] || appConfigs[AppEnvironment.DEV] || defaultConfig;
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin mx-auto mb-4 text-brand-500" size={48} />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderView = () => {
     switch (currentView) {
@@ -67,6 +185,13 @@ const App: React.FC = () => {
             logoUrl={initialConfig.logoUrl} 
             onStartNew={handleNewStart}
             onConnectExisting={handleExistingConnect}
+          />
+        );
+      case 'login' as AppView:
+        return (
+          <LoginView 
+            onLoginSuccess={handleLoginSuccess}
+            onBack={() => setCurrentView(AppView.WELCOME)}
           />
         );
       case AppView.CONFIGURATION:
@@ -79,14 +204,18 @@ const App: React.FC = () => {
       case AppView.SYNC_SUCCESS:
         return (
           <SyncSuccessView 
-            clientKey={initialConfig.clientKey}
-            appName={initialConfig.appName}
+            clientKey={sessionData?.clientKey || initialConfig.clientKey}
+            appName={sessionData?.shopInfo?.name || initialConfig.appName}
             onContinue={() => setCurrentView(AppView.DASHBOARD)} 
           />
         );
       case AppView.DASHBOARD:
         return (
-          <AdminDashboard configs={appConfigs} onLogout={handleLogout} />
+          <AdminDashboard 
+            configs={appConfigs} 
+            onLogout={handleLogout}
+            sessionData={sessionData}
+          />
         );
       default:
         return <div>Unknown View</div>;

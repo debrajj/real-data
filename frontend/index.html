@@ -3,13 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors https://*.myshopify.com https://admin.shopify.com;" />
-    <title>AppMint - Shopify App</title>
-    
-    <!-- Shopify App Bridge CDN - Required for embedded apps -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    
-    <!-- Tailwind CSS -->
+    <title>AppMint</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -17,51 +11,32 @@
           extend: {
             colors: {
               brand: {
-                DEFAULT: '#008060',
-                50: '#E6F5F0',
-                100: '#B3E0D1',
-                200: '#80CCB3',
-                300: '#4DB894',
-                400: '#26A676',
-                500: '#008060',
-                600: '#006B50',
-                700: '#005640',
-                800: '#004030',
-                900: '#002B20',
+                DEFAULT: '#E91E63',
+                50: '#FCE4EC',
+                100: '#F8BBD0',
+                200: '#F48FB1',
+                300: '#F06292',
+                400: '#EC407A',
+                500: '#E91E63',
+                600: '#D81B60',
+                700: '#C2185B',
+                800: '#AD1457',
+                900: '#880E4F',
               }
             },
             fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
             }
           }
         }
       }
     </script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Shopify Polaris CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@12.0.0/build/esm/styles.css">
-    
     <style>
-      body { 
-        font-family: 'Inter', system-ui, sans-serif; 
-        background-color: #f6f6f7; 
-        margin: 0;
-        padding: 0;
-      }
-      
-      /* Custom Scrollbar */
+      body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
       .hide-scrollbar::-webkit-scrollbar { display: none; }
       .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      
-      ::-webkit-scrollbar { width: 8px; height: 8px; }
-      ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
     </style>
-    
     <link rel="stylesheet" href="/index.css">
   </head>
   <body>

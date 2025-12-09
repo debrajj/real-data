@@ -1,5 +1,6 @@
 export enum AppView {
   WELCOME = 'WELCOME',
+  LOGIN = 'LOGIN', // Session-based login with Shopify credentials
   CONFIGURATION = 'CONFIGURATION',
   SYNC_SUCCESS = 'SYNC_SUCCESS',
   DASHBOARD = 'DASHBOARD', // The main admin layout

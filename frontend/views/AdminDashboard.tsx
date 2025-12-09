@@ -9,12 +9,25 @@ import {
 import { Download, RefreshCw, Smartphone, Eye, Server, Database, Lock, Key, Copy, Mail, MessageCircle, Phone, Plus, Ticket as TicketIcon, Loader2 } from 'lucide-react';
 import { themeAPI, Product, Collection, ThemeData } from '../client/api';
 
+interface SessionData {
+  token: string;
+  clientKey: string;
+  shopDomain: string;
+  shopInfo: {
+    name: string;
+    email: string;
+    currency: string;
+    timezone: string;
+  };
+}
+
 interface AdminDashboardProps {
   configs: Record<string, AppConfig>;
   onLogout: () => void;
+  sessionData?: SessionData | null;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sessionData }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>(DashboardTab.OVERVIEW);
   const [environment, setEnvironment] = useState<AppEnvironment>(AppEnvironment.PROD);
   
@@ -53,8 +66,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout }) =>
   ]);
   const [showTicketForm, setShowTicketForm] = useState(false);
 
-  // Get clientKey from config
-  const getClientKey = useCallback(() => config?.clientKey || '', [config]);
+  // Get clientKey from session or config
+  const getClientKey = useCallback(() => {
+    // Prefer session data if available
+    if (sessionData?.clientKey) return sessionData.clientKey;
+    return config?.clientKey || '';
+  }, [sessionData, config]);
 
   // Fetch all data from backend using clientKey
   const fetchData = useCallback(async () => {
@@ -164,23 +181,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout }) =>
     setIsSyncing(true);
     setDataError(null);
     const clientKey = getClientKey();
-    const shopDomain = config?.shopDomain;
+    const shopDomain = sessionData?.shopDomain || config?.shopDomain;
     
     try {
-      // First trigger a sync from Shopify if shopDomain is available
-      if (shopDomain) {
+      // Use session-based sync if available (preferred)
+      const token = localStorage.getItem('session_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Try session-based sync first
+      if (token) {
+        console.log('Using session-based sync...');
+        try {
+          const syncResponse = await fetch('/api/session/sync', {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+          });
+          const syncData = await syncResponse.json();
+          if (syncData.success) {
+            console.log('Session sync completed:', syncData.syncResults);
+          }
+        } catch (e) {
+          console.warn('Session sync failed, falling back to legacy sync:', e);
+        }
+      }
+      
+      // Fallback: trigger sync from Shopify if shopDomain is available
+      if (shopDomain && !token) {
         console.log(`Syncing from Shopify: ${shopDomain}`);
         
         // Sync products
         try {
-          await fetch(`/api/products/${encodeURIComponent(shopDomain)}/sync`, { method: 'POST' });
+          await fetch(`/api/products/${encodeURIComponent(shopDomain)}/sync`, { method: 'POST', headers });
         } catch (e) {
           console.warn('Product sync failed:', e);
         }
         
         // Sync collections
         try {
-          await fetch(`/api/collections/${encodeURIComponent(shopDomain)}/sync`, { method: 'POST' });
+          await fetch(`/api/collections/${encodeURIComponent(shopDomain)}/sync`, { method: 'POST', headers });
         } catch (e) {
           console.warn('Collection sync failed:', e);
         }

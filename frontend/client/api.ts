@@ -1,21 +1,66 @@
 /**
  * API Service Layer - Connects frontend to backend
+ * Supports session-based authentication for multi-tenant app
  */
 
 const API_BASE = '/api';
 
-// Generic fetch wrapper with error handling
+// Session token storage
+let sessionToken: string | null = null;
+
+// Set session token (call after login)
+export function setSessionToken(token: string | null) {
+  sessionToken = token;
+  if (token) {
+    localStorage.setItem('session_token', token);
+  } else {
+    localStorage.removeItem('session_token');
+  }
+}
+
+// Get session token
+export function getSessionToken(): string | null {
+  if (!sessionToken) {
+    sessionToken = localStorage.getItem('session_token');
+  }
+  return sessionToken;
+}
+
+// Clear session
+export function clearSession() {
+  sessionToken = null;
+  localStorage.removeItem('session_token');
+  localStorage.removeItem('session_data');
+}
+
+// Generic fetch wrapper with error handling and auth
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const token = getSessionToken();
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    ...options?.headers as Record<string, string>,
+  };
+
+  // Add auth header if session exists
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...options?.headers,
-    },
     ...options,
+    headers,
+    credentials: 'include', // Include cookies
   });
 
   const data = await response.json();
+  
+  // Handle auth errors
+  if (response.status === 401) {
+    clearSession();
+    throw new Error(data.error || 'Session expired. Please login again.');
+  }
   
   if (!response.ok || !data.success) {
     throw new Error(data.error || `API Error: ${response.status}`);
@@ -333,6 +378,141 @@ export const discountsAPI = {
     fetchAPI<{ success: boolean; discounts: Discount[] }>(`/discounts/${encodeURIComponent(shopDomain)}`),
 };
 
+// ============ Session API ============
+export interface ShopInfo {
+  name: string;
+  email: string;
+  currency: string;
+  timezone: string;
+}
+
+export interface SessionData {
+  token: string;
+  clientKey: string;
+  shopDomain: string;
+  shopInfo: ShopInfo;
+  isNewClient?: boolean;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  session: SessionData;
+}
+
+export interface SyncResults {
+  products: { success: boolean; synced?: number; total?: number; error?: string };
+  collections: { success: boolean; synced?: number; total?: number; error?: string };
+  blogs: { success: boolean; blogsCount?: number; articlesCount?: number; error?: string };
+  theme: { success: boolean; themeName?: string; components?: number; error?: string };
+}
+
+export const sessionAPI = {
+  // Login with Shopify credentials
+  login: async (credentials: {
+    shopDomain: string;
+    adminToken: string;
+    storefrontToken: string;
+  }): Promise<LoginResponse> => {
+    const response = await fetch(`${API_BASE}/session/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+      credentials: 'include',
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Login failed');
+    }
+    
+    // Store session token
+    if (data.session?.token) {
+      setSessionToken(data.session.token);
+      localStorage.setItem('session_data', JSON.stringify(data.session));
+    }
+    
+    return data;
+  },
+  
+  // Logout
+  logout: async () => {
+    try {
+      await fetchAPI('/session/logout', { method: 'POST' });
+    } finally {
+      clearSession();
+    }
+  },
+  
+  // Get current session info
+  me: () => fetchAPI<{
+    success: boolean;
+    session: {
+      clientKey: string;
+      shopDomain: string;
+      shopInfo: ShopInfo;
+      config: {
+        appName: string;
+        primaryColor: string;
+        logoUrl: string;
+        environment: string;
+      } | null;
+    };
+  }>('/session/me'),
+  
+  // Validate session
+  validate: async (): Promise<{
+    valid: boolean;
+    session?: {
+      clientKey: string;
+      shopDomain: string;
+      shopInfo: ShopInfo;
+    };
+  }> => {
+    try {
+      const response = await fetch(`${API_BASE}/session/validate`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${getSessionToken()}`,
+        },
+      });
+      const data = await response.json();
+      return { valid: data.valid, session: data.session };
+    } catch {
+      return { valid: false };
+    }
+  },
+  
+  // Sync all Shopify data
+  sync: () => fetchAPI<{
+    success: boolean;
+    message: string;
+    syncResults: SyncResults;
+  }>('/session/sync', { method: 'POST' }),
+  
+  // Update config (branding)
+  updateConfig: (updates: {
+    appName?: string;
+    primaryColor?: string;
+    logoUrl?: string;
+  }) => fetchAPI<{ success: boolean; config: ClientConfigData }>('/session/config', {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  }),
+  
+  // Get stored session data
+  getStoredSession: (): SessionData | null => {
+    const data = localStorage.getItem('session_data');
+    return data ? JSON.parse(data) : null;
+  },
+  
+  // Check if logged in
+  isLoggedIn: (): boolean => {
+    return !!getSessionToken();
+  },
+};
+
 export default {
   config: configAPI,
   products: productsAPI,
@@ -341,4 +521,8 @@ export default {
   blogs: blogsAPI,
   media: mediaAPI,
   discounts: discountsAPI,
+  session: sessionAPI,
+  setSessionToken,
+  getSessionToken,
+  clearSession,
 };

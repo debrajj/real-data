@@ -17,6 +17,7 @@ const themeRoutes = require('./routes/theme');
 const configRoutes = require('./routes/config');
 const seedRoutes = require('./routes/seed');
 const shopifyAuthRoutes = require('./routes/shopify-auth');
+const sessionRoutes = require('./routes/session');
 
 const { initializeChangeStream } = require('./services/changeStream');
 
@@ -52,6 +53,7 @@ app.use('/api/theme', themeRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/shopify', shopifyAuthRoutes);
+app.use('/api/session', sessionRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {
