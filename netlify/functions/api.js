@@ -2,6 +2,7 @@ const serverless = require('serverless-http');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const { connectDB } = require('../../config/database');
 const webhookRoutes = require('../../routes/webhooks');
@@ -14,6 +15,7 @@ const discountsRoutes = require('../../routes/discounts');
 const authRoutes = require('../../routes/auth');
 const themeRoutes = require('../../routes/theme');
 const configRoutes = require('../../routes/config');
+const shopifyAuthRoutes = require('../../routes/shopify-auth');
 
 dotenv.config();
 
@@ -24,13 +26,15 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:3002',
-    'https://realx-dara.netlify.app',
-    /https:\/\/.*--realx-dara\.netlify\.app$/
+    /https:\/\/.*\.netlify\.app$/,
+    /https:\/\/.*\.myshopify\.com$/,
+    'https://admin.shopify.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Shopify-Shop-Domain', 'X-Shopify-Hmac-Sha256']
 }));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: 'application/json' }));
 
@@ -67,6 +71,7 @@ app.use('/api/discounts', discountsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/theme', themeRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/shopify', shopifyAuthRoutes);
 app.use('/.netlify/functions/api/webhooks', webhookRoutes);
 app.use('/.netlify/functions/api/api', sseRoutes);
 app.use('/.netlify/functions/api/api/media', mediaRoutes);
@@ -77,6 +82,7 @@ app.use('/.netlify/functions/api/api/discounts', discountsRoutes);
 app.use('/.netlify/functions/api/api/auth', authRoutes);
 app.use('/.netlify/functions/api/api/theme', themeRoutes);
 app.use('/.netlify/functions/api/api/config', configRoutes);
+app.use('/.netlify/functions/api/api/shopify', shopifyAuthRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {

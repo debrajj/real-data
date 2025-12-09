@@ -1,7 +1,0 @@
-SHOPIFY_API_KEY=your_api_key_here
-SHOPIFY_API_SECRET=your_api_secret_here
-SHOPIFY_ACCESS_TOKEN=your_access_token_here
-SHOPIFY_SHOP_DOMAIN=your-store.myshopify.com
-MONGODB_URI=your_mongodb_connection_string
-HOST=https://realtime-apps-json.vercel.app
-PORT=3001

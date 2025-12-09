@@ -1,6 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const { syncAllCollections, getCollections } = require('../services/collectionSync');
+const { syncAllCollections, getCollections, getCollectionModel } = require('../services/collectionSync');
+
+/**
+ * GET /api/collections/client/:clientKey
+ * Get all collections for a client by clientKey (no shopDomain needed)
+ */
+router.get('/client/:clientKey', async (req, res) => {
+  try {
+    const { clientKey } = req.params;
+    const { limit } = req.query;
+
+    const Collection = await getCollectionModel(clientKey);
+    
+    const collections = await Collection.find({})
+      .select('-rawData')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit) || 50)
+      .lean();
+
+    res.json({
+      success: true,
+      count: collections.length,
+      collections,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching collections by clientKey:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 /**
  * GET /api/collections/:shopDomain

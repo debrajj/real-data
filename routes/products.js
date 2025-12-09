@@ -1,6 +1,42 @@
 const express = require('express');
 const router = express.Router();
-const { syncProduct, syncAllProducts, getProducts, getProduct } = require('../services/productSync');
+const { syncProduct, syncAllProducts, getProducts, getProduct, getProductModel } = require('../services/productSync');
+
+/**
+ * GET /api/products/client/:clientKey
+ * Get all products for a client by clientKey (no shopDomain needed)
+ */
+router.get('/client/:clientKey', async (req, res) => {
+  try {
+    const { clientKey } = req.params;
+    const { status, product_type, vendor, limit } = req.query;
+
+    const Product = await getProductModel(clientKey);
+    
+    const query = {};
+    if (status) query.status = status;
+    if (product_type) query.product_type = product_type;
+    if (vendor) query.vendor = vendor;
+
+    const products = await Product.find(query)
+      .select('-rawData')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit) || 50)
+      .lean();
+
+    res.json({
+      success: true,
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching products by clientKey:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 /**
  * GET /api/products

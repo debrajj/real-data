@@ -1,13 +1,29 @@
 const ShopifyAPI = require('./shopifyAPI');
-const Collection = require('../models/Collection');
 const Shop = require('../models/Shop');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { collectionSchema } = require('../models/schemas');
+
+/**
+ * Get Collection model for a specific store database
+ */
+async function getCollectionModel(clientKey) {
+  return getStoreModel(clientKey, 'Collection', collectionSchema, 'collections');
+}
 
 /**
  * Sync all collections from Shopify
  */
-async function syncAllCollections(shopDomain) {
+async function syncAllCollections(shopDomain, clientKey = null) {
   try {
     console.log(`🔄 Starting collection sync for ${shopDomain}`);
+    
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
     
     const shop = await Shop.findOne({ shopDomain });
     if (!shop) {
@@ -35,14 +51,14 @@ async function syncAllCollections(shopDomain) {
     }
     
     const allCollections = [...customCollections, ...smartCollections];
-    console.log(`📦 Found ${allCollections.length} collections`);
+    console.log(`📦 Found ${allCollections.length} collections → saving to ${clientKey} database`);
     
     let synced = 0;
     let failed = 0;
     
     for (const collectionData of allCollections) {
       try {
-        await saveCollection(shopDomain, collectionData);
+        await saveCollection(shopDomain, collectionData, clientKey);
         synced++;
       } catch (error) {
         console.error(`❌ Failed to save collection ${collectionData.id}:`, error);
@@ -60,9 +76,18 @@ async function syncAllCollections(shopDomain) {
 }
 
 /**
- * Save collection to MongoDB
+ * Save collection to store database
  */
-async function saveCollection(shopDomain, collectionData) {
+async function saveCollection(shopDomain, collectionData, clientKey = null) {
+  if (!clientKey) {
+    clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      throw new Error(`No client found for shop: ${shopDomain}`);
+    }
+  }
+  
+  const Collection = await getCollectionModel(clientKey);
+  
   const collectionDoc = {
     shopDomain,
     collectionId: collectionData.id.toString(),
@@ -90,13 +115,20 @@ async function saveCollection(shopDomain, collectionData) {
 /**
  * Get all collections for a shop
  */
-async function getCollections(shopDomain, options = {}) {
+async function getCollections(shopDomain, options = {}, clientKey = null) {
+  if (!clientKey) {
+    clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      throw new Error(`No client found for shop: ${shopDomain}`);
+    }
+  }
+  
+  const Collection = await getCollectionModel(clientKey);
   const query = { shopDomain };
   
   const collections = await Collection.find(query)
     .select('-rawData')
     .sort({ createdAt: -1 })
-    .allowDiskUse(true)
     .limit(options.limit || 250)
     .lean();
 
@@ -107,4 +139,5 @@ module.exports = {
   syncAllCollections,
   saveCollection,
   getCollections,
+  getCollectionModel,
 };

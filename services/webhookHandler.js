@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
 
 /**
  * Webhook Event Handler
@@ -48,7 +49,12 @@ const webhookEventSchema = new mongoose.Schema({
 webhookEventSchema.index({ shopDomain: 1, topic: 1, createdAt: -1 });
 webhookEventSchema.index({ createdAt: -1 });
 
-const WebhookEvent = mongoose.model('WebhookEvent', webhookEventSchema);
+/**
+ * Get WebhookEvent model for a specific store database
+ */
+async function getWebhookEventModel(clientKey) {
+  return getStoreModel(clientKey, 'WebhookEvent', webhookEventSchema, 'webhookevents');
+}
 
 /**
  * Webhook event handlers by topic
@@ -505,19 +511,31 @@ const eventHandlers = {
  * Process webhook event
  */
 async function processWebhook(topic, shopDomain, payload, headers = {}) {
+  let webhookEvent = null;
+  
   try {
-    // Store webhook event
-    const webhookEvent = new WebhookEvent({
-      shopDomain,
-      topic,
-      eventType: topic.split('/')[0],
-      payload,
-      webhookId: headers['x-shopify-webhook-id'],
-      apiVersion: headers['x-shopify-api-version'],
-    });
+    // Get clientKey from shopDomain
+    const clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      console.warn(`⚠️ No client found for shop: ${shopDomain}, webhook not stored`);
+      // Still process the handler even if we can't store the event
+    } else {
+      // Get WebhookEvent model for this store's database
+      const WebhookEvent = await getWebhookEventModel(clientKey);
+      
+      // Store webhook event
+      webhookEvent = new WebhookEvent({
+        shopDomain,
+        topic,
+        eventType: topic.split('/')[0],
+        payload,
+        webhookId: headers['x-shopify-webhook-id'],
+        apiVersion: headers['x-shopify-api-version'],
+      });
 
-    await webhookEvent.save();
-    console.log(`💾 Webhook event stored: ${topic}`);
+      await webhookEvent.save();
+      console.log(`💾 Webhook event stored in ${clientKey} database: ${topic}`);
+    }
 
     // Process with specific handler if available
     const handler = eventHandlers[topic];
@@ -525,9 +543,11 @@ async function processWebhook(topic, shopDomain, payload, headers = {}) {
       const result = await handler(shopDomain, payload);
       
       // Mark as processed
-      webhookEvent.processed = true;
-      webhookEvent.processedAt = new Date();
-      await webhookEvent.save();
+      if (webhookEvent) {
+        webhookEvent.processed = true;
+        webhookEvent.processedAt = new Date();
+        await webhookEvent.save();
+      }
       
       return { success: true, result };
     } else {
@@ -551,6 +571,13 @@ async function processWebhook(topic, shopDomain, payload, headers = {}) {
  * Get webhook events
  */
 async function getWebhookEvents(shopDomain, options = {}) {
+  // Get clientKey from shopDomain
+  const clientKey = await getClientKeyFromShopDomain(shopDomain);
+  if (!clientKey) {
+    throw new Error(`No client found for shop: ${shopDomain}`);
+  }
+  
+  const WebhookEvent = await getWebhookEventModel(clientKey);
   const query = { shopDomain };
   
   if (options.topic) {
@@ -563,7 +590,6 @@ async function getWebhookEvents(shopDomain, options = {}) {
   
   const events = await WebhookEvent.find(query)
     .sort({ createdAt: -1 })
-    .allowDiskUse(true)
     .limit(options.limit || 100)
     .lean();
   
@@ -573,5 +599,5 @@ async function getWebhookEvents(shopDomain, options = {}) {
 module.exports = {
   processWebhook,
   getWebhookEvents,
-  WebhookEvent,
+  getWebhookEventModel,
 };

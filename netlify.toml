@@ -1,14 +1,23 @@
 [build]
-  command = "npm install && cd client && npm install && npm run build"
-  publish = "client/build"
+  base = "."
+  command = "cd frontend && npm install && npm run build"
+  publish = "frontend/dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
+# Headers for Shopify embedded app (iframe support)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "frame-ancestors https://*.myshopify.com https://admin.shopify.com;"
+    X-Frame-Options = "ALLOW-FROM https://*.myshopify.com"
+
+# API routes -> Netlify Functions
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api/api/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
 [[redirects]]
@@ -16,6 +25,7 @@
   to = "/.netlify/functions/api/webhooks/:splat"
   status = 200
 
+# SPA fallback - all other routes serve index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"

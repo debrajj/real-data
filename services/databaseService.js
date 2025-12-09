@@ -1,121 +1,106 @@
 const mongoose = require('mongoose');
+const { getClientDB, getStoreModel } = require('../config/database');
 
+/**
+ * DatabaseService - Multi-Database Architecture
+ * 
+ * Structure:
+ * MongoDB Server
+ * ├── config (database)
+ * │   └── clients (collection with all client configs)
+ * │   └── shops (collection with shop info)
+ * ├── store1 (database)
+ * │   ├── products (collection)
+ * │   ├── collections (collection)
+ * │   ├── blogs (collection)
+ * │   └── ...
+ * ├── store2 (database)
+ * │   ├── products (collection)
+ * │   └── ...
+ * └── myspoon (database)
+ *     ├── products (collection)
+ *     └── ...
+ */
 class DatabaseService {
   constructor() {
-    this.connections = new Map();
+    // Collections that go in each store database
+    this.storeCollections = [
+      'products',
+      'collections', 
+      'blogs',
+      'articles',
+      'themedatas',
+      'media',
+      'discounts',
+      'webhookevents'
+    ];
   }
 
   /**
-   * Create a new database for a client
+   * Create database and collections for a store
    */
   async createClientDatabase(clientKey) {
     try {
-      const baseUri = process.env.MONGODB_URI;
+      console.log(`📦 Creating database for: ${clientKey}`);
       
-      // Extract base URI without database name
-      // MongoDB URI format: mongodb+srv://user:pass@host/database?options
-      // Change the prefix here or remove it entirely
-      const dbName = clientKey; // No prefix - just use clientKey as database name
-      // OR use a different prefix:
-      // const dbName = `client_${clientKey}`;
-      // const dbName = `app_${clientKey}`;
+      const clientDB = await getClientDB(clientKey);
       
-      // Split by '/' and replace the database name (last part before query params)
-      const uriBeforeDb = baseUri.substring(0, baseUri.lastIndexOf('/'));
-      const queryParams = baseUri.includes('?') ? baseUri.substring(baseUri.indexOf('?')) : '';
-      const clientDbUri = `${uriBeforeDb}/${dbName}${queryParams}`;
-
-      console.log(`📦 Creating database: ${dbName}`);
-
-      // Create connection to the new database
-      const connection = mongoose.createConnection(clientDbUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-
-      // Wait for connection to be ready
-      await connection.asPromise();
-
-      // Store connection
-      this.connections.set(clientKey, connection);
-
-      console.log(`✅ Database created: ${dbName}`);
-
-      return {
-        databaseName: dbName,
-        databaseUri: clientDbUri,
-        connection,
-      };
+      // Create collections in the store database
+      for (const col of this.storeCollections) {
+        try {
+          await clientDB.db.createCollection(col);
+          console.log(`  ✓ Created: ${col}`);
+        } catch (e) {
+          if (e.code !== 48) console.log(`  ⚠ ${col}: ${e.message}`);
+        }
+      }
+      
+      console.log(`✅ Database ready: ${clientKey}`);
+      return { databaseName: clientKey, collections: this.storeCollections };
     } catch (error) {
-      console.error(`❌ Error creating database for ${clientKey}:`, error);
+      console.error(`❌ Error creating ${clientKey}:`, error);
       throw error;
     }
   }
 
-  /**
-   * Get connection for a client
-   */
-  getConnection(clientKey) {
-    return this.connections.get(clientKey);
+  // Alias for backward compatibility
+  async createClientCollections(clientKey) {
+    return this.createClientDatabase(clientKey);
   }
 
   /**
-   * Close connection for a client
+   * Get model for a store's collection
    */
-  async closeConnection(clientKey) {
-    const connection = this.connections.get(clientKey);
-    if (connection) {
-      await connection.close();
-      this.connections.delete(clientKey);
-      console.log(`🔌 Closed connection for: ${clientKey}`);
-    }
+  async getModel(clientKey, modelName, schema, collectionName) {
+    return getStoreModel(clientKey, modelName, schema, collectionName || modelName.toLowerCase() + 's');
   }
 
   /**
-   * Initialize collections for a new client database
+   * Delete store database
    */
-  async initializeCollections(clientKey) {
-    const connection = this.getConnection(clientKey);
-    if (!connection) {
-      throw new Error(`No connection found for client: ${clientKey}`);
-    }
-
-    // Create collections with schemas
-    const collections = [
-      'products',
-      'collections',
-      'media',
-      'themedata',
-      'blogs',
-      'articles',
-      'discounts',
-      'shops',
-    ];
-
-    for (const collectionName of collections) {
-      await connection.createCollection(collectionName);
-      console.log(`  ✓ Created collection: ${collectionName}`);
-    }
-
-    return collections;
-  }
-
-  /**
-   * Check if database exists
-   */
-  async databaseExists(clientKey) {
+  async deleteClientDatabase(clientKey) {
     try {
-      const connection = this.getConnection(clientKey);
-      if (!connection) return false;
-
-      const admin = connection.db.admin();
-      const databases = await admin.listDatabases();
-      const dbName = clientKey; // Match the naming in createClientDatabase
-      
-      return databases.databases.some(db => db.name === dbName);
+      const clientDB = await getClientDB(clientKey);
+      await clientDB.db.dropDatabase();
+      console.log(`🗑️ Deleted database: ${clientKey}`);
+      return true;
     } catch (error) {
-      return false;
+      console.error(`❌ Error deleting ${clientKey}:`, error);
+      throw error;
     }
+  }
+
+  async deleteClientCollections(clientKey) {
+    return this.deleteClientDatabase(clientKey);
+  }
+
+  /**
+   * List all store databases
+   */
+  async listStoreDatabases() {
+    const ClientConfig = require('../models/ClientConfig');
+    const configs = await ClientConfig.find({}).distinct('clientKey');
+    return configs;
   }
 }
 

@@ -1,10 +1,45 @@
 const axios = require('axios');
-const Media = require('../models/Media');
 const path = require('path');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { mediaSchema, productSchema, collectionSchema } = require('../models/schemas');
 
 class MediaService {
-  constructor(shopDomain) {
+  constructor(shopDomain, clientKey = null) {
     this.shopDomain = shopDomain;
+    this.clientKey = clientKey;
+  }
+
+  /**
+   * Get Media model for the store database
+   */
+  async getMediaModel() {
+    if (!this.clientKey) {
+      this.clientKey = await getClientKeyFromShopDomain(this.shopDomain);
+      if (!this.clientKey) {
+        throw new Error(`No client found for shop: ${this.shopDomain}`);
+      }
+    }
+    return getStoreModel(this.clientKey, 'Media', mediaSchema, 'media');
+  }
+
+  /**
+   * Get Product model for the store database
+   */
+  async getProductModel() {
+    if (!this.clientKey) {
+      this.clientKey = await getClientKeyFromShopDomain(this.shopDomain);
+    }
+    return getStoreModel(this.clientKey, 'Product', productSchema, 'products');
+  }
+
+  /**
+   * Get Collection model for the store database
+   */
+  async getCollectionModel() {
+    if (!this.clientKey) {
+      this.clientKey = await getClientKeyFromShopDomain(this.shopDomain);
+    }
+    return getStoreModel(this.clientKey, 'Collection', collectionSchema, 'collections');
   }
 
   /**
@@ -23,6 +58,8 @@ class MediaService {
    */
   async downloadAndStore(imageUrl, metadata = {}) {
     try {
+      const Media = await this.getMediaModel();
+      
       // Convert shopify:// URLs to CDN URLs
       const cdnUrl = this.convertShopifyUrl(imageUrl);
       
@@ -230,12 +267,12 @@ class MediaService {
    * Get all media for shop as JSON
    */
   async getAllMedia(options = {}) {
+    const Media = await this.getMediaModel();
     const query = { shopDomain: this.shopDomain };
     
     const media = await Media.find(query)
       .select('-data') // Exclude binary data
       .sort({ createdAt: -1 })
-      .allowDiskUse(true)
       .limit(options.limit || 100);
 
     return media.map(m => ({
@@ -258,6 +295,7 @@ class MediaService {
    * Get media by ID with binary data
    */
   async getMediaById(mediaId) {
+    const Media = await this.getMediaModel();
     return await Media.findById(mediaId);
   }
 
@@ -266,7 +304,7 @@ class MediaService {
    */
   async downloadProductImages() {
     try {
-      const Product = require('../models/Product');
+      const Product = await this.getProductModel();
       const products = await Product.find({ shopDomain: this.shopDomain }).lean();
       
       console.log(`📦 Processing ${products.length} products for images`);
@@ -324,7 +362,7 @@ class MediaService {
    */
   async downloadCollectionImages() {
     try {
-      const Collection = require('../models/Collection');
+      const Collection = await this.getCollectionModel();
       const collections = await Collection.find({ shopDomain: this.shopDomain }).lean();
       
       console.log(`📚 Processing ${collections.length} collections for images`);

@@ -1,23 +1,49 @@
 const ShopifyAPI = require('./shopifyAPI');
 const Shop = require('../models/Shop');
-const { Blog, Article } = require('../models/Blog');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { blogSchema, articleSchema } = require('../models/schemas');
+
+/**
+ * Get Blog model for a specific store database
+ */
+async function getBlogModel(clientKey) {
+  return getStoreModel(clientKey, 'Blog', blogSchema, 'blogs');
+}
+
+/**
+ * Get Article model for a specific store database
+ */
+async function getArticleModel(clientKey) {
+  return getStoreModel(clientKey, 'Article', articleSchema, 'articles');
+}
 
 /**
  * Sync all blogs and articles from Shopify
  */
-async function syncAllBlogs(shopDomain) {
+async function syncAllBlogs(shopDomain, clientKey = null) {
   try {
     console.log(`🔄 Starting blog sync for ${shopDomain}`);
+    
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
     
     const shop = await Shop.findOne({ shopDomain });
     if (!shop) {
       throw new Error(`Shop not found: ${shopDomain}`);
     }
 
+    const Blog = await getBlogModel(clientKey);
+    const Article = await getArticleModel(clientKey);
+
     const shopifyAPI = new ShopifyAPI(shopDomain, shop.accessToken);
     const blogs = await shopifyAPI.getAllBlogs();
     
-    console.log(`📝 Found ${blogs.length} blogs`);
+    console.log(`📝 Found ${blogs.length} blogs → saving to ${clientKey} database`);
     
     // Save blogs
     for (const blog of blogs) {
@@ -89,4 +115,6 @@ async function syncAllBlogs(shopDomain) {
 
 module.exports = {
   syncAllBlogs,
+  getBlogModel,
+  getArticleModel,
 };

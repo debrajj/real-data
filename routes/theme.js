@@ -1,8 +1,57 @@
 const express = require('express');
 const router = express.Router();
 const { handleThemeUpdate } = require('../services/themeSync');
-const ThemeData = require('../models/ThemeData');
 const { fixImageUrlsInData } = require('../utils/imageUrlFixer');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { themeDataSchema, productSchema, collectionSchema } = require('../models/schemas');
+
+/**
+ * GET /api/theme/client/:clientKey
+ * Get theme data by clientKey (no shopDomain needed)
+ */
+router.get('/client/:clientKey', async (req, res) => {
+  try {
+    const { clientKey } = req.params;
+    
+    const ThemeData = await getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
+    const Product = await getStoreModel(clientKey, 'Product', productSchema, 'products');
+    const Collection = await getStoreModel(clientKey, 'Collection', collectionSchema, 'collections');
+    
+    const themeData = await ThemeData.findOne({})
+      .sort({ version: -1 })
+      .lean();
+    
+    const products = await Product.find({})
+      .select('-rawData')
+      .limit(50)
+      .lean();
+    
+    const collections = await Collection.find({})
+      .select('-rawData')
+      .limit(50)
+      .lean();
+    
+    res.json({
+      success: true,
+      data: {
+        theme: themeData,
+        products,
+        collections,
+        counts: {
+          products: products.length,
+          collections: collections.length,
+          hasTheme: !!themeData
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching theme data by clientKey:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 /**
  * GET /api/theme/sync
@@ -41,9 +90,22 @@ router.get('/data', async (req, res) => {
   try {
     const shopDomain = req.query.shopDomain || process.env.SHOPIFY_SHOP_DOMAIN || 'cmstestingg.myshopify.com';
     
+    // Get clientKey from shopDomain
+    const clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      return res.status(404).json({
+        success: false,
+        error: `No client found for shop: ${shopDomain}`
+      });
+    }
+    
+    // Get models for this store's database
+    const ThemeData = await getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
+    const Product = await getStoreModel(clientKey, 'Product', productSchema, 'products');
+    const Collection = await getStoreModel(clientKey, 'Collection', collectionSchema, 'collections');
+    
     const themeData = await ThemeData.findOne({ shopDomain })
       .sort({ version: -1 })
-      .allowDiskUse(true)
       .lean();
     
     if (!themeData) {
@@ -53,18 +115,12 @@ router.get('/data', async (req, res) => {
       });
     }
     
-    // Enrich with products and collections
-    const Product = require('../models/Product');
-    const Collection = require('../models/Collection');
-    
     const products = await Product.find({ shopDomain })
       .select('-rawData')
-      .allowDiskUse(true)
       .lean();
     
     const collections = await Collection.find({ shopDomain })
       .select('-rawData')
-      .allowDiskUse(true)
       .lean();
     
     // Add products to collections
@@ -103,9 +159,20 @@ router.get('/status', async (req, res) => {
   try {
     const shopDomain = req.query.shopDomain || process.env.SHOPIFY_SHOP_DOMAIN || 'cmstestingg.myshopify.com';
     
+    // Get clientKey from shopDomain
+    const clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      return res.json({
+        success: true,
+        synced: false,
+        message: `No client found for shop: ${shopDomain}`
+      });
+    }
+    
+    const ThemeData = await getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
+    
     const themeData = await ThemeData.findOne({ shopDomain })
       .sort({ version: -1 })
-      .allowDiskUse(true)
       .select('version updatedAt themeId themeName components')
       .lean();
     

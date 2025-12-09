@@ -1,5 +1,6 @@
-const Discount = require('../models/Discount');
 const ShopifyAPI = require('./shopifyAPI');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { discountSchema } = require('../models/schemas');
 
 // Helper to get Shopify API instance
 function getShopifyAPI(shopDomain) {
@@ -10,10 +11,27 @@ function getShopifyAPI(shopDomain) {
 }
 
 /**
+ * Get Discount model for a specific store database
+ */
+async function getDiscountModel(clientKey) {
+  return getStoreModel(clientKey, 'Discount', discountSchema, 'discounts');
+}
+
+/**
  * Create a BOGO discount
  */
-async function createBOGODiscount(shopDomain, discountData) {
+async function createBOGODiscount(shopDomain, discountData, clientKey = null) {
   try {
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
+    
     const {
       code,
       title,
@@ -137,8 +155,16 @@ async function createBOGODiscount(shopDomain, discountData) {
 /**
  * Get discount by code
  */
-async function getDiscountByCode(shopDomain, code) {
+async function getDiscountByCode(shopDomain, code, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
     const discount = await Discount.findOne({
       shopDomain,
       code: code.toUpperCase(),
@@ -242,8 +268,14 @@ async function applyDiscountToCart(shopDomain, code, cartItems) {
 /**
  * Increment discount usage
  */
-async function incrementDiscountUsage(shopDomain, code) {
+async function incrementDiscountUsage(shopDomain, code, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) return;
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
     await Discount.findOneAndUpdate(
       { shopDomain, code: code.toUpperCase() },
       { $inc: { usageCount: 1 } }
@@ -256,8 +288,16 @@ async function incrementDiscountUsage(shopDomain, code) {
 /**
  * Get all active discounts
  */
-async function getActiveDiscounts(shopDomain) {
+async function getActiveDiscounts(shopDomain, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
     const now = new Date();
     const discounts = await Discount.find({
       shopDomain,
@@ -280,8 +320,16 @@ async function getActiveDiscounts(shopDomain) {
 /**
  * Update discount
  */
-async function updateDiscount(shopDomain, code, updates) {
+async function updateDiscount(shopDomain, code, updates, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
     const discount = await Discount.findOneAndUpdate(
       { shopDomain, code: code.toUpperCase() },
       { $set: updates },
@@ -303,8 +351,16 @@ async function updateDiscount(shopDomain, code, updates) {
 /**
  * Delete discount
  */
-async function deleteDiscount(shopDomain, code) {
+async function deleteDiscount(shopDomain, code, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
     const discount = await Discount.findOneAndDelete({
       shopDomain,
       code: code.toUpperCase(),
@@ -325,8 +381,18 @@ async function deleteDiscount(shopDomain, code) {
 /**
  * Create a general discount (percentage, fixed amount, free shipping)
  */
-async function createGeneralDiscount(shopDomain, discountData) {
+async function createGeneralDiscount(shopDomain, discountData, clientKey = null) {
   try {
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Discount = await getDiscountModel(clientKey);
+    
     const {
       code,
       title,

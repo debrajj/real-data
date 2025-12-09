@@ -1,13 +1,36 @@
 const ShopifyAPI = require('./shopifyAPI');
-const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { productSchema, collectionSchema } = require('../models/schemas');
+
+/**
+ * Get Product model for a specific store database
+ */
+async function getProductModel(clientKey) {
+  return getStoreModel(clientKey, 'Product', productSchema, 'products');
+}
+
+/**
+ * Get Collection model for a specific store database
+ */
+async function getCollectionModel(clientKey) {
+  return getStoreModel(clientKey, 'Collection', collectionSchema, 'collections');
+}
 
 /**
  * Sync a single product
  */
-async function syncProduct(shopDomain, productId) {
+async function syncProduct(shopDomain, productId, clientKey = null) {
   try {
     console.log(`🔄 Syncing product ${productId} from ${shopDomain}`);
+    
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
     
     const shop = await Shop.findOne({ shopDomain });
     if (!shop) {
@@ -21,7 +44,7 @@ async function syncProduct(shopDomain, productId) {
       throw new Error(`Product not found: ${productId}`);
     }
 
-    await saveProduct(shopDomain, productData);
+    await saveProduct(shopDomain, productData, clientKey);
     
     console.log(`✅ Product synced: ${productData.title}`);
     return productData;
@@ -34,9 +57,17 @@ async function syncProduct(shopDomain, productId) {
 /**
  * Sync all products from Shopify
  */
-async function syncAllProducts(shopDomain) {
+async function syncAllProducts(shopDomain, clientKey = null) {
   try {
     console.log(`🔄 Starting full product sync for ${shopDomain}`);
+    
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
     
     const shop = await Shop.findOne({ shopDomain });
     if (!shop) {
@@ -46,14 +77,14 @@ async function syncAllProducts(shopDomain) {
     const shopifyAPI = new ShopifyAPI(shopDomain, shop.accessToken);
     const products = await shopifyAPI.getAllProducts();
     
-    console.log(`📦 Found ${products.length} products`);
+    console.log(`📦 Found ${products.length} products → saving to ${clientKey} database`);
     
     let synced = 0;
     let failed = 0;
     
     for (const productData of products) {
       try {
-        await saveProduct(shopDomain, productData);
+        await saveProduct(shopDomain, productData, clientKey);
         synced++;
       } catch (error) {
         console.error(`❌ Failed to save product ${productData.id}:`, error);
@@ -71,9 +102,18 @@ async function syncAllProducts(shopDomain) {
 }
 
 /**
- * Save product to MongoDB
+ * Save product to store database
  */
-async function saveProduct(shopDomain, productData) {
+async function saveProduct(shopDomain, productData, clientKey) {
+  if (!clientKey) {
+    clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      throw new Error(`No client found for shop: ${shopDomain}`);
+    }
+  }
+  
+  const Product = await getProductModel(clientKey);
+  
   const productDoc = {
     shopDomain,
     productId: productData.id.toString(),
@@ -105,10 +145,19 @@ async function saveProduct(shopDomain, productData) {
 }
 
 /**
- * Delete product from MongoDB
+ * Delete product from store database
  */
-async function deleteProduct(shopDomain, productId) {
+async function deleteProduct(shopDomain, productId, clientKey = null) {
   try {
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const Product = await getProductModel(clientKey);
+    
     await Product.findOneAndDelete({
       shopDomain,
       productId: productId.toString(),
@@ -123,14 +172,21 @@ async function deleteProduct(shopDomain, productId) {
 /**
  * Get all products for a shop
  */
-async function getProducts(shopDomain, options = {}) {
+async function getProducts(shopDomain, options = {}, clientKey = null) {
+  if (!clientKey) {
+    clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      throw new Error(`No client found for shop: ${shopDomain}`);
+    }
+  }
+  
+  const Product = await getProductModel(clientKey);
   const query = { shopDomain };
   
   // Filter by specific product IDs if provided
   if (options.ids && options.ids.length > 0) {
     query.productId = { $in: options.ids };
     
-    // Fetch products and maintain the order of IDs
     const products = await Product.find(query)
       .select('-rawData')
       .lean();
@@ -161,20 +217,17 @@ async function getProducts(shopDomain, options = {}) {
 
   // Filter by collection if provided
   if (options.collection) {
-    const Collection = require('../models/Collection');
+    const Collection = await getCollectionModel(clientKey);
     
-    // Find collection by handle
     const collection = await Collection.findOne({
       shopDomain,
       handle: options.collection
     });
     
     if (collection) {
-      // Filter products that have this collection ID
       query.collections = collection.collectionId;
     } else {
       console.warn(`⚠️ Collection not found: ${options.collection}`);
-      // Return empty array if collection doesn't exist
       return [];
     }
   }
@@ -182,7 +235,6 @@ async function getProducts(shopDomain, options = {}) {
   const products = await Product.find(query)
     .select('-rawData')
     .sort({ createdAt: -1 })
-    .allowDiskUse(true)
     .limit(options.limit || 250)
     .lean();
 
@@ -192,7 +244,16 @@ async function getProducts(shopDomain, options = {}) {
 /**
  * Get single product
  */
-async function getProduct(shopDomain, productId) {
+async function getProduct(shopDomain, productId, clientKey = null) {
+  if (!clientKey) {
+    clientKey = await getClientKeyFromShopDomain(shopDomain);
+    if (!clientKey) {
+      throw new Error(`No client found for shop: ${shopDomain}`);
+    }
+  }
+  
+  const Product = await getProductModel(clientKey);
+  
   const product = await Product.findOne({
     shopDomain,
     productId: productId.toString(),
@@ -208,4 +269,5 @@ module.exports = {
   deleteProduct,
   getProducts,
   getProduct,
+  getProductModel,
 };

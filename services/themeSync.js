@@ -1,13 +1,32 @@
 const ShopifyAPI = require('./shopifyAPI');
 const ThemeParser = require('./themeParser');
-const ThemeData = require('../models/ThemeData');
 const Shop = require('../models/Shop');
 const MediaService = require('./mediaService');
 const { fixImageUrlsInData } = require('../utils/imageUrlFixer');
+const { getStoreModel, getClientKeyFromShopDomain } = require('../config/database');
+const { themeDataSchema } = require('../models/schemas');
 
-async function handleThemeUpdate(shopDomain, themeId) {
+/**
+ * Get ThemeData model for a specific store database
+ */
+async function getThemeDataModel(clientKey) {
+  return getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
+}
+
+async function handleThemeUpdate(shopDomain, themeId, clientKey = null) {
   try {
     console.log(`🔄 Starting theme sync for ${shopDomain}, theme: ${themeId}`);
+    
+    // Get clientKey if not provided
+    if (!clientKey) {
+      clientKey = await getClientKeyFromShopDomain(shopDomain);
+      if (!clientKey) {
+        throw new Error(`No client found for shop: ${shopDomain}`);
+      }
+    }
+    
+    const ThemeData = await getThemeDataModel(clientKey);
+    console.log(`📦 Saving theme data to ${clientKey} database`);
     
     // Get or create shop record
     let shop = await Shop.findOne({ shopDomain });

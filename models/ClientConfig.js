@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+/**
+ * ClientConfig Model
+ * Stored in the main 'cmsdata' database under 'config' collection
+ * This tracks all client databases and their configurations
+ */
 const clientConfigSchema = new mongoose.Schema({
   clientName: {
     type: String,
@@ -11,11 +16,10 @@ const clientConfigSchema = new mongoose.Schema({
   clientKey: {
     type: String,
     required: [true, 'Client key is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     minlength: [3, 'Client key must be at least 3 characters'],
-    maxlength: [30, 'Client key cannot exceed 30 characters'],
+    maxlength: [50, 'Client key cannot exceed 50 characters'],
     match: [/^[a-z0-9-]+$/, 'Client key must contain only lowercase letters, numbers, and hyphens'],
   },
   environment: {
@@ -29,21 +33,27 @@ const clientConfigSchema = new mongoose.Schema({
   apiBaseUrl: {
     type: String,
     required: [true, 'API base URL is required'],
-    unique: true,
+    // Not unique - same client can use same URL for dev/prod
     trim: true,
     match: [/^https?:\/\/.+/, 'API base URL must be a valid URL'],
   },
   adminApiBaseUrl: {
     type: String,
     required: [true, 'Admin API base URL is required'],
-    unique: true,
+    // Not unique - same client can use same URL for dev/prod
     trim: true,
     match: [/^https?:\/\/.+/, 'Admin API base URL must be a valid URL'],
+  },
+  shopDomain: {
+    type: String,
+    trim: true,
+    // Shopify store domain (e.g., mystore.myshopify.com)
+    // Not unique - same client uses same shop for dev/prod
   },
   appName: {
     type: String,
     required: [true, 'App name is required'],
-    unique: true,
+    // Not unique - same client can use same app name for dev/prod
     trim: true,
     minlength: [2, 'App name must be at least 2 characters'],
     maxlength: [50, 'App name cannot exceed 50 characters'],
@@ -51,14 +61,14 @@ const clientConfigSchema = new mongoose.Schema({
   storefrontToken: {
     type: String,
     required: [true, 'Storefront token is required'],
-    unique: true,
+    // Not unique - same client uses same token for dev/prod
     trim: true,
     minlength: [10, 'Storefront token must be at least 10 characters'],
   },
   adminShopToken: {
     type: String,
     required: [true, 'Admin shop token is required'],
-    unique: true,
+    // Not unique - same client uses same token for dev/prod
     trim: true,
     minlength: [10, 'Admin shop token must be at least 10 characters'],
   },
@@ -90,9 +100,10 @@ const clientConfigSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  databaseUri: {
+  // Legacy field - no longer used in multi-database architecture
+  collectionName: {
     type: String,
-    required: true,
+    default: 'default',
   },
   isActive: {
     type: Boolean,
@@ -108,17 +119,16 @@ const clientConfigSchema = new mongoose.Schema({
   },
 });
 
-// Compound unique index for clientKey + environment
+// Compound unique index for clientKey + environment (main constraint)
+// This ensures each client can have only one dev and one prod config
 clientConfigSchema.index({ clientKey: 1, environment: 1 }, { unique: true });
 
-// Additional unique indexes for critical fields
-clientConfigSchema.index({ appName: 1 }, { unique: true });
+// Only bundleId and packageName need to be globally unique (for app stores)
 clientConfigSchema.index({ bundleId: 1 }, { unique: true });
 clientConfigSchema.index({ packageName: 1 }, { unique: true });
-clientConfigSchema.index({ apiBaseUrl: 1 }, { unique: true });
-clientConfigSchema.index({ adminApiBaseUrl: 1 }, { unique: true });
-clientConfigSchema.index({ storefrontToken: 1 }, { unique: true });
-clientConfigSchema.index({ adminShopToken: 1 }, { unique: true });
+
+// Other fields can be shared between dev/prod of the same client
+// No unique indexes for: appName, apiBaseUrl, adminApiBaseUrl, storefrontToken, adminShopToken
 
 // Update timestamp on save
 clientConfigSchema.pre('save', function(next) {
@@ -126,4 +136,5 @@ clientConfigSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('ClientConfig', clientConfigSchema);
+// Store in 'clients' collection in the 'config' database
+module.exports = mongoose.model('ClientConfig', clientConfigSchema, 'clients');
