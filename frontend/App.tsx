@@ -102,7 +102,7 @@ const App: React.FC = () => {
 
   const handleNewStart = () => {
     // Go to login view for new users
-    setCurrentView(AppView.LOGIN as AppView);
+    setCurrentView(AppView.LOGIN);
   };
 
   const handleExistingConnect = (configs: Record<string, AppConfig>) => {
@@ -187,7 +187,7 @@ const App: React.FC = () => {
             onConnectExisting={handleExistingConnect}
           />
         );
-      case 'login' as AppView:
+      case AppView.LOGIN:
         return (
           <LoginView 
             onLoginSuccess={handleLoginSuccess}
