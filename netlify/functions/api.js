@@ -16,6 +16,7 @@ const authRoutes = require('../../routes/auth');
 const themeRoutes = require('../../routes/theme');
 const configRoutes = require('../../routes/config');
 const shopifyAuthRoutes = require('../../routes/shopify-auth');
+const sessionRoutes = require('../../routes/session');
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/theme', themeRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/shopify', shopifyAuthRoutes);
+app.use('/api/session', sessionRoutes);
 app.use('/.netlify/functions/api/webhooks', webhookRoutes);
 app.use('/.netlify/functions/api/api', sseRoutes);
 app.use('/.netlify/functions/api/api/media', mediaRoutes);
@@ -83,6 +85,7 @@ app.use('/.netlify/functions/api/api/auth', authRoutes);
 app.use('/.netlify/functions/api/api/theme', themeRoutes);
 app.use('/.netlify/functions/api/api/config', configRoutes);
 app.use('/.netlify/functions/api/api/shopify', shopifyAuthRoutes);
+app.use('/.netlify/functions/api/api/session', sessionRoutes);
 
 // Wrap with serverless
 const handler = serverless(app, {
