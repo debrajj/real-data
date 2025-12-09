@@ -101,8 +101,12 @@ const App: React.FC = () => {
   };
 
   const handleNewStart = () => {
-    // Go to login view for new users
-    setCurrentView(AppView.LOGIN);
+    // Go to configuration view for new users
+    setAppConfigs({
+      [AppEnvironment.DEV]: { ...defaultConfig, environment: AppEnvironment.DEV },
+      [AppEnvironment.PROD]: { ...defaultConfig, environment: AppEnvironment.PROD }
+    });
+    setCurrentView(AppView.CONFIGURATION);
   };
 
   const handleExistingConnect = (configs: Record<string, AppConfig>) => {

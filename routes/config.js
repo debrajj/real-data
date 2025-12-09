@@ -431,21 +431,12 @@ router.post('/', async (req, res) => {
 
     console.log(`✅ Configuration created for: ${clientKey} (${environment})`);
 
-    // Auto-sync Shopify data if shopDomain is available
+    // Create shop record (without full sync to avoid timeout)
+    // Full sync should be triggered separately via /api/theme/sync or dashboard
     let syncResults = null;
     if (shopDomain) {
-      console.log(`🔄 Auto-syncing Shopify data for ${shopDomain}...`);
-      
-      syncResults = {
-        shopInfo: { success: false },
-        products: { success: false },
-        collections: { success: false },
-        blogs: { success: false },
-        theme: { success: false },
-      };
-
       try {
-        // Create or update shop record
+        // Create or update shop record with tokens
         let shop = await Shop.findOne({ shopDomain });
         if (!shop) {
           shop = await Shop.create({
@@ -458,12 +449,11 @@ router.post('/', async (req, res) => {
           shop.storefrontToken = storefrontToken;
           await shop.save();
         }
-
-        // Initialize Shopify API
-        const shopifyAPI = new ShopifyAPI(shopDomain, adminShopToken);
-
-        // Sync Shop Info
+        console.log(`✅ Shop record created/updated for: ${shopDomain}`);
+        
+        // Only sync shop info (fast operation)
         try {
+          const shopifyAPI = new ShopifyAPI(shopDomain, adminShopToken);
           const shopInfo = await shopifyAPI.getShopInfo();
           shop.name = shopInfo.name;
           shop.email = shopInfo.email;
@@ -471,51 +461,11 @@ router.post('/', async (req, res) => {
           shop.currency = shopInfo.currency;
           shop.timezone = shopInfo.timezone;
           await shop.save();
-          syncResults.shopInfo = { success: true, name: shopInfo.name };
+          syncResults = { shopInfo: { success: true, name: shopInfo.name } };
           console.log(`✅ Shop info synced: ${shopInfo.name}`);
         } catch (error) {
           console.error('❌ Failed to sync shop info:', error.message);
-          syncResults.shopInfo.error = error.message;
-        }
-
-        // Sync Products
-        try {
-          const productResults = await syncAllProducts(shopDomain, clientKey);
-          syncResults.products = { success: true, synced: productResults.synced, total: productResults.total };
-          console.log(`✅ Products synced: ${productResults.synced}/${productResults.total}`);
-        } catch (error) {
-          console.error('❌ Failed to sync products:', error.message);
-          syncResults.products.error = error.message;
-        }
-
-        // Sync Collections
-        try {
-          const collectionResults = await syncAllCollections(shopDomain, clientKey);
-          syncResults.collections = { success: true, synced: collectionResults.synced, total: collectionResults.total };
-          console.log(`✅ Collections synced: ${collectionResults.synced}/${collectionResults.total}`);
-        } catch (error) {
-          console.error('❌ Failed to sync collections:', error.message);
-          syncResults.collections.error = error.message;
-        }
-
-        // Sync Blogs
-        try {
-          const blogResults = await syncAllBlogs(shopDomain, clientKey);
-          syncResults.blogs = { success: true, blogsCount: blogResults.blogsCount, articlesCount: blogResults.articlesCount };
-          console.log(`✅ Blogs synced: ${blogResults.blogsCount} blogs, ${blogResults.articlesCount} articles`);
-        } catch (error) {
-          console.error('❌ Failed to sync blogs:', error.message);
-          syncResults.blogs.error = error.message;
-        }
-
-        // Sync Theme Data
-        try {
-          const themeData = await handleThemeUpdate(shopDomain, null, clientKey);
-          syncResults.theme = { success: true, themeName: themeData.themeName, components: themeData.components?.length || 0 };
-          console.log(`✅ Theme synced: ${themeData.themeName}`);
-        } catch (error) {
-          console.error('❌ Failed to sync theme:', error.message);
-          syncResults.theme.error = error.message;
+          syncResults = { shopInfo: { success: false, error: error.message } };
         }
 
       } catch (syncError) {
