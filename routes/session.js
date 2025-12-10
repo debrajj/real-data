@@ -197,7 +197,7 @@ router.post('/sync', requireAuth, async (req, res) => {
 
     // Sync Theme
     try {
-      const result = await handleThemeUpdate(shopDomain, null, clientKey);
+      const result = await handleThemeUpdate(shopDomain, null, clientKey, adminToken);
       syncResults.theme = { 
         success: true, 
         themeName: result.themeName,

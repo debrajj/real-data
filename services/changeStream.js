@@ -4,6 +4,14 @@ const Media = require('../models/Media');
 // Store SSE clients
 const sseClients = new Map();
 
+// Track active streams
+let themeChangeStream = null;
+let mediaChangeStream = null;
+let themeStreamRetryCount = 0;
+let mediaStreamRetryCount = 0;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 10000; // 10 seconds
+
 function addSSEClient(clientId, res, shopDomain) {
   sseClients.set(clientId, { res, shopDomain });
   console.log(`📡 SSE client added: ${clientId}, Total clients: ${sseClients.size}`);
@@ -18,7 +26,6 @@ function broadcastToClients(data, shopDomain) {
   let sentCount = 0;
   
   for (const [clientId, client] of sseClients.entries()) {
-    // Only send to clients watching this shop
     if (client.shopDomain === shopDomain) {
       try {
         client.res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -30,104 +37,130 @@ function broadcastToClients(data, shopDomain) {
     }
   }
   
-  console.log(`📤 Broadcast sent to ${sentCount} clients for shop: ${shopDomain}`);
+  if (sentCount > 0) {
+    console.log(`📤 Broadcast sent to ${sentCount} clients for shop: ${shopDomain}`);
+  }
 }
 
-let themeStreamRetryCount = 0;
-let mediaStreamRetryCount = 0;
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 10000; // 10 seconds
+function initializeThemeStream() {
+  // Close existing stream if any
+  if (themeChangeStream) {
+    try {
+      themeChangeStream.close();
+    } catch (e) {
+      // Ignore close errors
+    }
+    themeChangeStream = null;
+  }
 
-function initializeChangeStream() {
   try {
-    // Watch ThemeData collection
-    const themeChangeStream = ThemeData.watch([], {
+    themeChangeStream = ThemeData.watch([], {
       fullDocument: 'updateLookup',
     });
 
     console.log('👀 MongoDB Change Stream watching ThemeData collection');
-    themeStreamRetryCount = 0; // Reset on successful connection
+    themeStreamRetryCount = 0;
 
     themeChangeStream.on('change', async (change) => {
       console.log('🔔 Theme change detected:', change.operationType);
       
-      if (change.operationType === 'insert' || change.operationType === 'update' || change.operationType === 'replace') {
+      if (['insert', 'update', 'replace'].includes(change.operationType)) {
         const fullDocument = change.fullDocument;
         
         if (fullDocument) {
-          // Get media for this shop
-          const media = await Media.find({ shopDomain: fullDocument.shopDomain })
-            .select('-data')
-            .sort({ createdAt: -1 })
-            .allowDiskUse(true)
-            .limit(100)
-            .lean();
+          try {
+            const media = await Media.find({ shopDomain: fullDocument.shopDomain })
+              .select('-data')
+              .sort({ createdAt: -1 })
+              .allowDiskUse(true)
+              .limit(100)
+              .lean();
 
-          // Replace shopify:// URLs with CDN URLs
-          const UrlReplacer = require('../services/urlReplacer');
-          const urlReplacer = new UrlReplacer(fullDocument.shopDomain);
-          const replacedComponents = await urlReplacer.replaceUrls(fullDocument.components);
-          const replacedPages = await urlReplacer.replaceUrls(fullDocument.pages);
+            const UrlReplacer = require('../services/urlReplacer');
+            const urlReplacer = new UrlReplacer(fullDocument.shopDomain);
+            const replacedComponents = await urlReplacer.replaceUrls(fullDocument.components);
+            const replacedPages = await urlReplacer.replaceUrls(fullDocument.pages);
 
-          const payload = {
-            type: 'theme_update',
-            operationType: change.operationType,
-            data: {
-              shopDomain: fullDocument.shopDomain,
-              themeId: fullDocument.themeId,
-              themeName: fullDocument.themeName,
-              components: replacedComponents,
-              pages: replacedPages,
-              theme: fullDocument.rawData?.theme,
-              version: fullDocument.version,
-              updatedAt: fullDocument.updatedAt,
-              media: media.map(m => ({
-                id: m._id,
-                filename: m.filename,
-                originalUrl: m.originalUrl,
-                cdnUrl: m.cdnUrl, // Include CDN URL
-                contentType: m.contentType,
-                size: m.size,
-                width: m.width,
-                height: m.height,
-                alt: m.alt,
-                url: `/api/media/${fullDocument.shopDomain}/image/${m._id}`,
-              })),
-            },
-          };
-          
-          broadcastToClients(payload, fullDocument.shopDomain);
+            const payload = {
+              type: 'theme_update',
+              operationType: change.operationType,
+              data: {
+                shopDomain: fullDocument.shopDomain,
+                themeId: fullDocument.themeId,
+                themeName: fullDocument.themeName,
+                components: replacedComponents,
+                pages: replacedPages,
+                theme: fullDocument.rawData?.theme,
+                version: fullDocument.version,
+                updatedAt: fullDocument.updatedAt,
+                media: media.map(m => ({
+                  id: m._id,
+                  filename: m.filename,
+                  originalUrl: m.originalUrl,
+                  cdnUrl: m.cdnUrl,
+                  contentType: m.contentType,
+                  size: m.size,
+                  width: m.width,
+                  height: m.height,
+                  alt: m.alt,
+                  url: `/api/media/${fullDocument.shopDomain}/image/${m._id}`,
+                })),
+              },
+            };
+            
+            broadcastToClients(payload, fullDocument.shopDomain);
+          } catch (err) {
+            console.error('❌ Error processing theme change:', err.message);
+          }
         }
       }
     });
 
     themeChangeStream.on('error', (error) => {
       console.error('❌ Theme change stream error:', error.message);
-      themeStreamRetryCount++;
     });
 
     themeChangeStream.on('close', () => {
-      if (themeStreamRetryCount < MAX_RETRIES) {
-        const delay = RETRY_DELAY * Math.pow(2, themeStreamRetryCount);
-        console.log(`⚠️ Theme change stream closed, retrying in ${delay/1000}s (attempt ${themeStreamRetryCount + 1}/${MAX_RETRIES})`);
-        setTimeout(initializeChangeStream, delay);
+      themeChangeStream = null;
+      themeStreamRetryCount++;
+      
+      if (themeStreamRetryCount <= MAX_RETRIES) {
+        const delay = RETRY_DELAY * Math.pow(2, themeStreamRetryCount - 1);
+        console.log(`⚠️ Theme change stream closed, retrying in ${delay/1000}s (attempt ${themeStreamRetryCount}/${MAX_RETRIES})`);
+        setTimeout(initializeThemeStream, delay);
       } else {
         console.log('❌ Theme change stream max retries reached, giving up');
       }
     });
 
-    // Watch Media collection
-    const mediaChangeStream = Media.watch([], {
+  } catch (error) {
+    console.error('❌ Failed to initialize theme change stream:', error.message);
+  }
+}
+
+function initializeMediaStream() {
+  // Close existing stream if any
+  if (mediaChangeStream) {
+    try {
+      mediaChangeStream.close();
+    } catch (e) {
+      // Ignore close errors
+    }
+    mediaChangeStream = null;
+  }
+
+  try {
+    mediaChangeStream = Media.watch([], {
       fullDocument: 'updateLookup',
     });
 
     console.log('👀 MongoDB Change Stream watching Media collection');
-    mediaStreamRetryCount = 0; // Reset on successful connection
+    mediaStreamRetryCount = 0;
 
     mediaChangeStream.on('change', async (change) => {
       console.log('🔔 Media change detected:', change.operationType);
       
-      if (change.operationType === 'insert' || change.operationType === 'update' || change.operationType === 'replace') {
+      if (['insert', 'update', 'replace'].includes(change.operationType)) {
         const fullDocument = change.fullDocument;
         
         if (fullDocument) {
@@ -139,7 +172,7 @@ function initializeChangeStream() {
               shopDomain: fullDocument.shopDomain,
               filename: fullDocument.filename,
               originalUrl: fullDocument.originalUrl,
-              cdnUrl: fullDocument.cdnUrl, // Include CDN URL
+              cdnUrl: fullDocument.cdnUrl,
               contentType: fullDocument.contentType,
               size: fullDocument.size,
               width: fullDocument.width,
@@ -158,20 +191,29 @@ function initializeChangeStream() {
 
     mediaChangeStream.on('error', (error) => {
       console.error('❌ Media change stream error:', error.message);
-      mediaStreamRetryCount++;
     });
 
     mediaChangeStream.on('close', () => {
-      if (mediaStreamRetryCount < MAX_RETRIES) {
-        console.log(`⚠️ Media change stream closed (attempt ${mediaStreamRetryCount}/${MAX_RETRIES})`);
+      mediaChangeStream = null;
+      mediaStreamRetryCount++;
+      
+      if (mediaStreamRetryCount <= MAX_RETRIES) {
+        const delay = RETRY_DELAY * Math.pow(2, mediaStreamRetryCount - 1);
+        console.log(`⚠️ Media change stream closed, retrying in ${delay/1000}s (attempt ${mediaStreamRetryCount}/${MAX_RETRIES})`);
+        setTimeout(initializeMediaStream, delay);
       } else {
-        console.log('❌ Media change stream max retries reached');
+        console.log('❌ Media change stream max retries reached, giving up');
       }
     });
 
   } catch (error) {
-    console.error('❌ Failed to initialize change stream:', error);
+    console.error('❌ Failed to initialize media change stream:', error.message);
   }
+}
+
+function initializeChangeStream() {
+  initializeThemeStream();
+  initializeMediaStream();
 }
 
 module.exports = {

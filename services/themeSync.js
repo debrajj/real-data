@@ -13,7 +13,7 @@ async function getThemeDataModel(clientKey) {
   return getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
 }
 
-async function handleThemeUpdate(shopDomain, themeId, clientKey = null) {
+async function handleThemeUpdate(shopDomain, themeId, clientKey = null, accessToken = null) {
   try {
     console.log(`🔄 Starting theme sync for ${shopDomain}, theme: ${themeId}`);
     
@@ -28,18 +28,40 @@ async function handleThemeUpdate(shopDomain, themeId, clientKey = null) {
     const ThemeData = await getThemeDataModel(clientKey);
     console.log(`📦 Saving theme data to ${clientKey} database`);
     
-    // Get or create shop record
-    let shop = await Shop.findOne({ shopDomain });
-    if (!shop) {
-      shop = await Shop.create({
-        shopDomain,
-        accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
-        themeId,
-      });
+    // Get access token - prioritize: provided > ClientConfig > Shop > env
+    let shopAccessToken = accessToken;
+    
+    if (!shopAccessToken) {
+      // Try to get from ClientConfig first (session-based auth)
+      const ClientConfig = require('../models/ClientConfig');
+      const clientConfig = await ClientConfig.findOne({ clientKey, isActive: true });
+      if (clientConfig?.adminShopToken) {
+        shopAccessToken = clientConfig.adminShopToken;
+        console.log(`🔑 Using token from ClientConfig`);
+      }
+    }
+    
+    if (!shopAccessToken) {
+      // Fallback to Shop model
+      const shop = await Shop.findOne({ shopDomain });
+      if (shop?.accessToken) {
+        shopAccessToken = shop.accessToken;
+        console.log(`🔑 Using token from Shop model`);
+      }
+    }
+    
+    if (!shopAccessToken) {
+      // Final fallback to env
+      shopAccessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+      console.log(`🔑 Using token from environment`);
+    }
+    
+    if (!shopAccessToken) {
+      throw new Error('No Shopify access token available');
     }
 
     // Initialize Shopify API
-    const shopifyAPI = new ShopifyAPI(shopDomain, shop.accessToken);
+    const shopifyAPI = new ShopifyAPI(shopDomain, shopAccessToken);
     
     // Get theme ID - prioritize: provided > env variable > active theme
     let activeThemeId = themeId || process.env.SHOPIFY_THEME_ID;

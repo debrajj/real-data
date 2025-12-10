@@ -12,6 +12,7 @@ const { themeDataSchema, productSchema, collectionSchema } = require('../models/
 router.get('/client/:clientKey', async (req, res) => {
   try {
     const { clientKey } = req.params;
+    console.log(`📦 Fetching theme data for clientKey: ${clientKey}`);
     
     const ThemeData = await getStoreModel(clientKey, 'ThemeData', themeDataSchema, 'themedatas');
     const Product = await getStoreModel(clientKey, 'Product', productSchema, 'products');
@@ -20,6 +21,11 @@ router.get('/client/:clientKey', async (req, res) => {
     const themeData = await ThemeData.findOne({})
       .sort({ version: -1 })
       .lean();
+    
+    console.log(`📦 ThemeData found: ${!!themeData}, components: ${themeData?.components?.length || 0}`);
+    if (themeData?.components?.length > 0) {
+      console.log(`📦 Component types: ${themeData.components.map(c => c.type).join(', ')}`);
+    }
     
     const products = await Product.find({})
       .select('-rawData')
@@ -30,6 +36,8 @@ router.get('/client/:clientKey', async (req, res) => {
       .select('-rawData')
       .limit(50)
       .lean();
+    
+    console.log(`📦 Products: ${products.length}, Collections: ${collections.length}`);
     
     res.json({
       success: true,

@@ -18,14 +18,29 @@ const ComponentRenderers: Record<string, React.FC<{ component: any; products: Pr
   hero: ({ component, primaryColor }) => {
     const props = component.props || {};
     const blocks = component.blocks || [];
-    const image = props.image || props.background_image || blocks[0]?.settings?.image;
-    const heading = props.heading || blocks.find((b: any) => b.type === 'heading')?.settings?.heading || '';
+    const image = props.image || props.background_image || props.image_1 || props.media_1 || blocks[0]?.settings?.image;
+    
+    // Extract text from blocks
+    const textBlock = blocks.find((b: any) => b.type === 'text' || b.type === 'heading');
+    const buttonBlock = blocks.find((b: any) => b.type === 'button' || b.type === 'buttons');
+    
+    // Parse HTML text if present
+    const rawText = textBlock?.settings?.text || props.heading || '';
+    const heading = rawText.replace(/<[^>]*>/g, '').trim(); // Strip HTML tags
+    
     const subheading = props.subheading || props.text || '';
-    const buttonText = props.button_label || blocks.find((b: any) => b.type === 'buttons')?.settings?.button_label_1 || '';
+    const buttonText = buttonBlock?.settings?.label || buttonBlock?.settings?.button_label_1 || props.button_label || '';
+    
+    // Get color scheme
+    const bgColor = props.overlay_color || props.color_scheme ? '#1a1a1a' : '#f3f4f6';
     
     return (
-      <div className="relative w-full h-44 overflow-hidden bg-gray-100">
-        {image && <img src={image} alt="Hero" className="w-full h-full object-cover" />}
+      <div className="relative w-full h-44 overflow-hidden" style={{ backgroundColor: bgColor }}>
+        {image ? (
+          <img src={image} alt="Hero" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900" />
+        )}
         <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-center p-4">
           {heading && <h2 className="text-white text-base font-bold mb-1">{heading}</h2>}
           {subheading && <p className="text-white text-[10px] opacity-90 mb-2">{subheading}</p>}
@@ -42,8 +57,8 @@ const ComponentRenderers: Record<string, React.FC<{ component: any; products: Pr
   // Product List Component
   'product-list': ({ component, products, primaryColor }) => {
     const props = component.props || {};
-    const title = props.title || props.heading || 'Products';
-    const limit = props.limit || props.products_to_show || 6;
+    const title = props.title || props.heading || props.section_title || 'Products';
+    const limit = props.max_products || props.limit || props.products_to_show || 6;
     const displayProducts = products.slice(0, Math.min(limit, 8));
     
     if (displayProducts.length === 0) {
@@ -118,11 +133,12 @@ const ComponentRenderers: Record<string, React.FC<{ component: any; products: Pr
   // Slideshow/Banner Component
   'slide-show': ({ component }) => {
     const blocks = component.blocks || [];
+    const props = component.props || {};
     const firstBlock = blocks[0];
-    const image = firstBlock?.settings?.image_slide || firstBlock?.settings?.image;
-    const heading = firstBlock?.settings?.heading || '';
-    const subHeading = firstBlock?.settings?.sub_heading || '';
-    const buttonText = firstBlock?.settings?.button_slide || '';
+    const image = firstBlock?.settings?.image_slide || firstBlock?.settings?.image || props.image;
+    const heading = firstBlock?.settings?.heading || props.heading || '';
+    const subHeading = firstBlock?.settings?.sub_heading || props.subheading || '';
+    const buttonText = firstBlock?.settings?.button_slide || firstBlock?.settings?.button_label || props.button_label || '';
     
     if (!image) return null;
     
@@ -142,6 +158,11 @@ const ComponentRenderers: Record<string, React.FC<{ component: any; products: Pr
         )}
       </div>
     );
+  },
+
+  // Alias for slideshow (Shopify uses this name)
+  'slideshow': ({ component, products, collections, primaryColor }) => {
+    return ComponentRenderers['slide-show']({ component, products, collections, primaryColor });
   },
 
   // Image Banner Component
@@ -436,12 +457,43 @@ const PhoneFrame: React.FC<PhoneFrameProps> = ({
 }) => {
   const components = themeData?.components || [];
   
+  // Debug logging
+  console.log('PhoneFrame render:', {
+    hasThemeData: !!themeData,
+    componentsCount: components.length,
+    componentTypes: components.map(c => c.type),
+    productsCount: products.length,
+    collectionsCount: collections.length
+  });
+  
 
   
+  // Map Shopify section types to our renderer types
+  const typeAliases: Record<string, string> = {
+    'slideshow': 'slide-show',
+    'image_banner': 'image-banner',
+    'featured_collection': 'featured-collection',
+    'collection_list': 'collection-list',
+    'rich_text': 'rich-text',
+    'video_section': 'video-block',
+    'product_block': 'product-block',
+    'spotlight_block': 'spotlight-block',
+    'custom_service_block': 'custom-service-block',
+    'multicolumn': 'multicolumn',
+    'announcement-bar': 'header', // Treat announcement bar as part of header
+  };
+
   // Render a single component based on its type
   const renderComponent = (component: any, index: number) => {
-    const type = component.type?.toLowerCase() || '';
-    const Renderer = ComponentRenderers[type];
+    let type = component.type?.toLowerCase() || '';
+    
+    // Convert underscores to hyphens for consistency
+    type = type.replace(/_/g, '-');
+    
+    // Check for type aliases
+    const normalizedType = typeAliases[component.type?.toLowerCase()] || type;
+    
+    const Renderer = ComponentRenderers[normalizedType] || ComponentRenderers[type];
     
     if (component.props?.disabled) return null;
     
@@ -458,7 +510,8 @@ const PhoneFrame: React.FC<PhoneFrameProps> = ({
       );
     }
     
-    // Fallback: render unknown component type as debug info
+    // Fallback: render unknown component type as debug info (only in dev)
+    console.log('Unknown component type:', component.type, component);
     return (
       <div key={component.id || index} className="px-3 py-2 bg-yellow-50 border-l-2 border-yellow-400">
         <p className="text-[9px] text-yellow-700">Unknown: {component.type}</p>
