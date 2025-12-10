@@ -14,6 +14,82 @@ interface PhoneFrameProps {
 // Dynamic Component Renderers - Each renders based on JSON data
 const ComponentRenderers: Record<string, React.FC<{ component: any; products: Product[]; collections: Collection[]; primaryColor: string }>> = {
   
+  // Hero Component (similar to image-banner)
+  hero: ({ component, primaryColor }) => {
+    const props = component.props || {};
+    const blocks = component.blocks || [];
+    const image = props.image || props.background_image || blocks[0]?.settings?.image;
+    const heading = props.heading || blocks.find((b: any) => b.type === 'heading')?.settings?.heading || '';
+    const subheading = props.subheading || props.text || '';
+    const buttonText = props.button_label || blocks.find((b: any) => b.type === 'buttons')?.settings?.button_label_1 || '';
+    
+    return (
+      <div className="relative w-full h-44 overflow-hidden bg-gray-100">
+        {image && <img src={image} alt="Hero" className="w-full h-full object-cover" />}
+        <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-center p-4">
+          {heading && <h2 className="text-white text-base font-bold mb-1">{heading}</h2>}
+          {subheading && <p className="text-white text-[10px] opacity-90 mb-2">{subheading}</p>}
+          {buttonText && (
+            <button className="bg-white text-black text-[10px] px-4 py-1.5 rounded font-medium" style={{ color: primaryColor }}>
+              {buttonText}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  },
+
+  // Product List Component
+  'product-list': ({ component, products, primaryColor }) => {
+    const props = component.props || {};
+    const title = props.title || props.heading || 'Products';
+    const limit = props.limit || props.products_to_show || 6;
+    const displayProducts = products.slice(0, Math.min(limit, 8));
+    
+    if (displayProducts.length === 0) {
+      return (
+        <div className="px-3 py-3">
+          <h3 className="font-bold text-gray-800 text-xs mb-2">{title}</h3>
+          <p className="text-[10px] text-gray-400 text-center py-4">No products available</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="px-3 py-3">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-bold text-gray-800 text-xs">{title}</h3>
+          <span className="text-[10px] flex items-center" style={{ color: primaryColor }}>
+            View All <ChevronRight size={10} />
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {displayProducts.map((product) => (
+            <div key={product.productId} className="bg-white rounded-lg border border-gray-100 p-1.5 shadow-sm">
+              <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-1">
+                {product.images?.[0]?.src ? (
+                  <img src={product.images[0].src} alt={product.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ShoppingBag size={20} className="text-gray-300" />
+                  </div>
+                )}
+              </div>
+              <h4 className="text-[10px] font-medium text-gray-900 truncate">{product.title}</h4>
+              <p className="text-[8px] text-gray-500 truncate">{product.vendor}</p>
+              <div className="flex justify-between items-center mt-0.5">
+                <span className="text-[10px] font-bold" style={{ color: primaryColor }}>
+                  ₹{parseFloat(product.variants?.[0]?.price || '0').toFixed(0)}
+                </span>
+                <Heart size={10} className="text-gray-400" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  },
+
   // Header Component
   header: ({ component, primaryColor }) => {
     const props = component.props || {};
