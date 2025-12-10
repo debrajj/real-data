@@ -111,21 +111,42 @@ const ComponentRenderers: Record<string, React.FC<{ component: any; products: Pr
     const logo = props.logo;
     const logoText = props.logo_text || 'Store';
     const bgColor = props.bg_color || '#ffffff';
+    const menuItems = props.menu || [];
     
     return (
-      <div className="h-12 flex items-center justify-between px-3 border-b border-gray-100" style={{ backgroundColor: bgColor }}>
-        <Menu size={18} className="text-gray-700" />
-        <div className="h-7 max-w-[100px] flex items-center justify-center">
-          {logo ? (
-            <img src={logo} alt="Logo" className="h-full object-contain" />
-          ) : (
-            <span className="font-bold text-sm" style={{ color: primaryColor }}>{logoText}</span>
-          )}
+      <div style={{ backgroundColor: bgColor }}>
+        {/* Top bar with logo and icons */}
+        <div className="h-12 flex items-center justify-between px-3 border-b border-gray-100">
+          <Menu size={18} className="text-gray-700" />
+          <div className="h-7 max-w-[100px] flex items-center justify-center">
+            {logo ? (
+              <img src={logo} alt="Logo" className="h-full object-contain" />
+            ) : (
+              <span className="font-bold text-sm" style={{ color: primaryColor }}>{logoText}</span>
+            )}
+          </div>
+          <div className="flex space-x-2 text-gray-700">
+            {props.show_search !== false && <Search size={18} />}
+            {props.show_cart !== false && <ShoppingBag size={18} />}
+          </div>
         </div>
-        <div className="flex space-x-2 text-gray-700">
-          {props.show_search !== false && <Search size={18} />}
-          {props.show_cart !== false && <ShoppingBag size={18} />}
-        </div>
+        
+        {/* Navigation menu bar */}
+        {menuItems.length > 0 && (
+          <div className="overflow-x-auto scrollbar-hide border-b border-gray-100">
+            <div className="flex px-2 py-2 space-x-3 min-w-max">
+              {menuItems.map((item: { title: string; url: string }, index: number) => (
+                <span 
+                  key={index} 
+                  className="text-[10px] font-medium text-gray-700 whitespace-nowrap hover:text-gray-900 cursor-pointer"
+                  style={{ color: index === 0 ? primaryColor : undefined }}
+                >
+                  {item.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   },
