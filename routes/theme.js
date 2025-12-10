@@ -18,8 +18,9 @@ router.get('/client/:clientKey', async (req, res) => {
     const Product = await getStoreModel(clientKey, 'Product', productSchema, 'products');
     const Collection = await getStoreModel(clientKey, 'Collection', collectionSchema, 'collections');
     
+    // Get the most recently updated theme (which should be the active one after sync)
     const themeData = await ThemeData.findOne({})
-      .sort({ version: -1 })
+      .sort({ updatedAt: -1 })
       .lean();
     
     console.log(`📦 ThemeData found: ${!!themeData}, components: ${themeData?.components?.length || 0}`);
