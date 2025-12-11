@@ -41,84 +41,64 @@ const App: React.FC = () => {
   }, []);
 
   const checkExistingSession = async () => {
+    console.log('🔍 Starting session check...');
+    
     try {
-      // First check for stored configs from client key flow
+      // PRIORITY 1: Check for stored configs from client key flow
       const storedConfigs = localStorage.getItem('app_configs');
       const storedClientKey = localStorage.getItem('client_key');
       
-      console.log('🔍 Session check - storedConfigs:', !!storedConfigs);
-      console.log('🔍 Session check - storedClientKey:', storedClientKey);
+      console.log('🔍 localStorage app_configs:', storedConfigs ? 'EXISTS' : 'NOT FOUND');
+      console.log('🔍 localStorage client_key:', storedClientKey || 'NOT FOUND');
       
       if (storedConfigs && storedClientKey) {
-        // Restore from client key flow
-        console.log('✅ Restoring from client key:', storedClientKey);
-        try {
-          const configs = JSON.parse(storedConfigs);
-          setAppConfigs(configs);
-          setCurrentView(AppView.DASHBOARD);
-          setLoading(false);
-          return;
-        } catch (e) {
-          console.error('Failed to parse stored configs:', e);
-        }
+        console.log('✅ Found stored client key config, restoring...');
+        const configs = JSON.parse(storedConfigs);
+        setAppConfigs(configs);
+        setCurrentView(AppView.DASHBOARD);
+        setLoading(false);
+        return; // Exit early - we're done
       }
       
-      // Check for session-based auth (login flow)
+      // PRIORITY 2: Check for session-based auth (login flow with Shopify credentials)
       const storedSession = sessionAPI.getStoredSession();
-      const hasToken = sessionAPI.isLoggedIn();
       const rawToken = localStorage.getItem('session_token');
       
-      console.log('🔍 Session check - storedSession:', !!storedSession);
-      console.log('🔍 Session check - hasToken:', hasToken);
-      console.log('🔍 Session check - rawToken in localStorage:', !!rawToken);
+      console.log('🔍 localStorage session_data:', storedSession ? 'EXISTS' : 'NOT FOUND');
+      console.log('🔍 localStorage session_token:', rawToken ? 'EXISTS' : 'NOT FOUND');
       
-      // Skip validation for client key tokens (they start with "clientkey_")
-      if (rawToken && rawToken.startsWith('clientkey_')) {
-        console.log('🔍 Client key token found, skipping server validation');
-        setCurrentView(AppView.WELCOME);
-        setLoading(false);
-        return;
-      }
-      
-      if (storedSession || hasToken || rawToken) {
-        // Validate the session with the server
-        console.log('🔍 Calling validate API...');
+      // If we have a real session token (not a clientkey_ token), validate it
+      if (rawToken && !rawToken.startsWith('clientkey_')) {
+        console.log('🔍 Validating session token with server...');
         const validation = await sessionAPI.validate();
-        console.log('🔍 Validate result:', validation);
+        console.log('🔍 Server validation result:', validation);
         
         if (validation.valid && validation.session) {
-          console.log('✅ Session restored:', validation.session.shopInfo?.name);
-          
-          // Get token from storage
-          const token = storedSession?.token || rawToken || '';
+          console.log('✅ Session valid, restoring...');
           
           const restoredSession: SessionData = {
-            token,
+            token: rawToken,
             clientKey: validation.session.clientKey,
             shopDomain: validation.session.shopDomain,
             shopInfo: validation.session.shopInfo,
           };
           
           setSessionData(restoredSession);
-          
-          // Re-save session data to ensure it's complete
           localStorage.setItem('session_data', JSON.stringify(restoredSession));
-          
-          // Update configs from session
           updateConfigsFromSession(validation.session);
           setCurrentView(AppView.DASHBOARD);
-        } else {
-          // Invalid session, clear it
-          console.log('❌ Session invalid, validation result:', validation);
-          clearSession();
-          setCurrentView(AppView.WELCOME);
+          setLoading(false);
+          return;
         }
-      } else {
-        console.log('🔍 No session found, showing welcome');
-        setCurrentView(AppView.WELCOME);
       }
+      
+      // No valid session found
+      console.log('🔍 No valid session, showing welcome screen');
+      clearSession();
+      setCurrentView(AppView.WELCOME);
+      
     } catch (error) {
-      console.error('Session check error:', error);
+      console.error('❌ Session check error:', error);
       clearSession();
       setCurrentView(AppView.WELCOME);
     } finally {
