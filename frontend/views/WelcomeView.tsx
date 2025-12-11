@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input, Card } from '../components/UI';
 import { Rocket, Smartphone, ShieldCheck, UserCheck, Plus, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { AppConfig, AppEnvironment } from '../types';
+import { setSessionToken } from '../client/api';
 
 interface WelcomeViewProps {
   onStartNew: () => void;
@@ -90,6 +91,12 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartNew, onConnectExisting
             return;
         }
 
+        // Store client key as a simple session token for persistence
+        const clientKeyToken = `clientkey_${clientKey.trim()}`;
+        setSessionToken(clientKeyToken);
+        localStorage.setItem('client_key', clientKey.trim());
+        localStorage.setItem('app_configs', JSON.stringify(newConfigs));
+        
         onConnectExisting(newConfigs);
       } else {
         // Success true but no data

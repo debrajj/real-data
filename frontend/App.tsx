@@ -42,7 +42,28 @@ const App: React.FC = () => {
 
   const checkExistingSession = async () => {
     try {
-      // Check if we have a stored session token (either from session_data or session_token)
+      // First check for stored configs from client key flow
+      const storedConfigs = localStorage.getItem('app_configs');
+      const storedClientKey = localStorage.getItem('client_key');
+      
+      console.log('🔍 Session check - storedConfigs:', !!storedConfigs);
+      console.log('🔍 Session check - storedClientKey:', storedClientKey);
+      
+      if (storedConfigs && storedClientKey) {
+        // Restore from client key flow
+        console.log('✅ Restoring from client key:', storedClientKey);
+        try {
+          const configs = JSON.parse(storedConfigs);
+          setAppConfigs(configs);
+          setCurrentView(AppView.DASHBOARD);
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.error('Failed to parse stored configs:', e);
+        }
+      }
+      
+      // Check for session-based auth (login flow)
       const storedSession = sessionAPI.getStoredSession();
       const hasToken = sessionAPI.isLoggedIn();
       const rawToken = localStorage.getItem('session_token');
@@ -50,6 +71,14 @@ const App: React.FC = () => {
       console.log('🔍 Session check - storedSession:', !!storedSession);
       console.log('🔍 Session check - hasToken:', hasToken);
       console.log('🔍 Session check - rawToken in localStorage:', !!rawToken);
+      
+      // Skip validation for client key tokens (they start with "clientkey_")
+      if (rawToken && rawToken.startsWith('clientkey_')) {
+        console.log('🔍 Client key token found, skipping server validation');
+        setCurrentView(AppView.WELCOME);
+        setLoading(false);
+        return;
+      }
       
       if (storedSession || hasToken || rawToken) {
         // Validate the session with the server
@@ -176,6 +205,10 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+    
+    // Clear all stored data
+    localStorage.removeItem('app_configs');
+    localStorage.removeItem('client_key');
     
     setSessionData(null);
     setAppConfigs({
