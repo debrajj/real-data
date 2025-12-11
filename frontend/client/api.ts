@@ -276,10 +276,33 @@ export interface ThemeStatusResponse {
   componentsCount?: number;
 }
 
+export interface ShopifyTheme {
+  id: string;
+  name: string;
+  role: string;
+  isActive: boolean;
+  previewable: boolean;
+  processing: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ThemeListResponse {
+  success: boolean;
+  themes: ShopifyTheme[];
+  activeThemeId: string;
+}
+
 export const themeAPI = {
   // Get all data by clientKey (preferred - includes products, collections, theme)
   getByClientKey: (clientKey: string) =>
     fetchAPI<ThemeClientResponse>(`/theme/client/${encodeURIComponent(clientKey)}`),
+  
+  // Get all available themes from Shopify
+  listThemes: (shopDomain?: string) => {
+    const params = shopDomain ? `?shopDomain=${encodeURIComponent(shopDomain)}` : '';
+    return fetchAPI<ThemeListResponse>(`/theme/list${params}`);
+  },
   
   // Get theme data
   getData: (shopDomain?: string) => {
@@ -293,7 +316,7 @@ export const themeAPI = {
     return fetchAPI<ThemeStatusResponse>(`/theme/status${params}`);
   },
   
-  // Trigger theme sync
+  // Trigger theme sync with specific theme ID
   sync: (shopDomain?: string, themeId?: string) =>
     fetchAPI<{ success: boolean; message: string; version: number }>('/theme/sync', {
       method: 'POST',

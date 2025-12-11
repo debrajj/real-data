@@ -7,7 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { Download, RefreshCw, Smartphone, Eye, Server, Database, Lock, Key, Copy, Mail, MessageCircle, Phone, Plus, Ticket as TicketIcon, Loader2 } from 'lucide-react';
-import { themeAPI, Product, Collection, ThemeData } from '../client/api';
+import { themeAPI, Product, Collection, ThemeData, ShopifyTheme } from '../client/api';
 
 interface SessionData {
   token: string;
@@ -49,6 +49,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
   const [loading, setLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [themeStatus, setThemeStatus] = useState<{ synced: boolean; version?: number; lastSync?: string; componentsCount?: number } | null>(null);
+  
+  // Available themes from Shopify
+  const [availableThemes, setAvailableThemes] = useState<ShopifyTheme[]>([]);
+  const [selectedThemeId, setSelectedThemeId] = useState<string>('');
+  const [loadingThemes, setLoadingThemes] = useState(false);
   
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
@@ -137,6 +142,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
   useEffect(() => {
     fetchData();
   }, [fetchData, environment]);
+
+  // Fetch available themes from Shopify
+  const fetchAvailableThemes = useCallback(async () => {
+    const shopDomain = sessionData?.shopDomain || config?.shopDomain;
+    if (!shopDomain) return;
+    
+    setLoadingThemes(true);
+    try {
+      const response = await themeAPI.listThemes(shopDomain);
+      if (response.success && response.themes) {
+        setAvailableThemes(response.themes);
+        // Set default to active theme
+        if (response.activeThemeId && !selectedThemeId) {
+          setSelectedThemeId(response.activeThemeId);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching themes:', error);
+    } finally {
+      setLoadingThemes(false);
+    }
+  }, [sessionData?.shopDomain, config?.shopDomain, selectedThemeId]);
 
   // Stats data - use real product count
   const statsData = [
@@ -263,6 +290,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
     } catch (error: any) {
       console.error('Sync failed:', error);
       setDataError(`Sync failed: ${error.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handle theme sync with selected theme ID
+  const handleThemeSync = async () => {
+    if (!selectedThemeId) return;
+    
+    setIsSyncing(true);
+    setDataError(null);
+    const clientKey = getClientKey();
+    const shopDomain = sessionData?.shopDomain || config?.shopDomain;
+    
+    try {
+      console.log(`Syncing theme ${selectedThemeId} from ${shopDomain}`);
+      
+      // Sync the selected theme
+      await themeAPI.sync(shopDomain, selectedThemeId);
+      
+      // Wait a moment for sync to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh data from database
+      if (clientKey) {
+        const response = await themeAPI.getByClientKey(clientKey);
+        
+        if (response.success && response.data) {
+          setProducts(response.data.products || []);
+          setCollections(response.data.collections || []);
+          setThemeData(response.data.theme || null);
+          setConnectionStatus('connected');
+          
+          setThemeStatus({
+            synced: response.data.counts.hasTheme,
+            componentsCount: response.data.theme?.components?.length || 0,
+            version: response.data.theme?.version,
+            lastSync: response.data.theme?.updatedAt,
+          });
+        }
+      }
+      
+      setLastSynced(new Date());
+    } catch (error: any) {
+      console.error('Theme sync failed:', error);
+      setDataError(`Theme sync failed: ${error.message}`);
     } finally {
       setIsSyncing(false);
     }
@@ -661,6 +734,68 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
               </div>
             )}
 
+            {/* Theme Selection */}
+            <div className="mb-6">
+               <div className="flex justify-between items-center mb-3">
+                 <label className="block text-sm font-medium text-gray-700">Select Theme to Sync</label>
+                 <button 
+                   onClick={fetchAvailableThemes}
+                   disabled={loadingThemes}
+                   className="text-xs text-brand-600 hover:text-brand-700 flex items-center"
+                 >
+                   <RefreshCw size={12} className={`mr-1 ${loadingThemes ? 'animate-spin' : ''}`} />
+                   {loadingThemes ? 'Loading...' : 'Refresh Themes'}
+                 </button>
+               </div>
+               
+               {availableThemes.length === 0 ? (
+                 <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                   <p className="text-sm text-gray-500 mb-2">No themes loaded</p>
+                   <Button variant="outline" onClick={fetchAvailableThemes} disabled={loadingThemes} className="text-xs">
+                     {loadingThemes ? 'Loading...' : 'Load Available Themes'}
+                   </Button>
+                 </div>
+               ) : (
+                 <div className="space-y-2 max-h-48 overflow-y-auto">
+                   {availableThemes.map((theme) => (
+                     <div 
+                       key={theme.id}
+                       onClick={() => setSelectedThemeId(theme.id)}
+                       className={`cursor-pointer border rounded-lg p-3 flex items-center justify-between transition-all ${
+                         selectedThemeId === theme.id 
+                           ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' 
+                           : 'border-gray-200 hover:border-gray-300'
+                       }`}
+                     >
+                       <div className="flex items-center">
+                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center mr-3 ${
+                           selectedThemeId === theme.id ? 'border-brand-500' : 'border-gray-400'
+                         }`}>
+                           {selectedThemeId === theme.id && <div className="w-2 h-2 rounded-full bg-brand-500" />}
+                         </div>
+                         <div>
+                           <span className="block text-sm font-medium text-gray-900">{theme.name}</span>
+                           <span className="block text-xs text-gray-500">ID: {theme.id}</span>
+                         </div>
+                       </div>
+                       <div className="flex items-center space-x-2">
+                         {theme.isActive && (
+                           <span className="px-2 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded-full">
+                             Published
+                           </span>
+                         )}
+                         {theme.role === 'unpublished' && (
+                           <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 rounded-full">
+                             Draft
+                           </span>
+                         )}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+            </div>
+
             <div className="mb-6">
                <label className="block text-sm font-medium text-gray-700 mb-3">Select Target Environment to Sync</label>
                <div className="grid grid-cols-2 gap-4">
@@ -692,13 +827,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
                </div>
             </div>
 
-            <Button onClick={handleSync} disabled={isSyncing} fullWidth className="py-3 text-base">
+            <Button onClick={handleThemeSync} disabled={isSyncing || !selectedThemeId} fullWidth className="py-3 text-base">
                 {isSyncing ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={18} />
-                    Syncing Data...
+                    Syncing Theme...
                   </>
-                ) : `Start Sync to ${syncTargetEnv}`}
+                ) : selectedThemeId ? `Sync Selected Theme to ${syncTargetEnv}` : 'Select a Theme to Sync'}
             </Button>
             
             {lastSynced && (

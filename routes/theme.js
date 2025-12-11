@@ -6,6 +6,58 @@ const { getStoreModel, getClientKeyFromShopDomain } = require('../config/databas
 const { themeDataSchema, productSchema, collectionSchema } = require('../models/schemas');
 
 /**
+ * GET /api/theme/list
+ * Get all available themes from Shopify
+ */
+router.get('/list', async (req, res) => {
+  try {
+    const shopDomain = req.query.shopDomain || process.env.SHOPIFY_SHOP_DOMAIN;
+    
+    // Get access token from ClientConfig or session
+    const ClientConfig = require('../models/ClientConfig');
+    const config = await ClientConfig.findOne({ shopDomain, isActive: true });
+    
+    const accessToken = config?.adminShopToken || process.env.SHOPIFY_ACCESS_TOKEN;
+    
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'No access token available'
+      });
+    }
+    
+    const axios = require('axios');
+    const response = await axios.get(
+      `https://${shopDomain}/admin/api/2024-01/themes.json`,
+      { headers: { 'X-Shopify-Access-Token': accessToken } }
+    );
+    
+    const themes = response.data.themes.map(theme => ({
+      id: theme.id.toString(),
+      name: theme.name,
+      role: theme.role,
+      isActive: theme.role === 'main',
+      previewable: theme.previewable,
+      processing: theme.processing,
+      createdAt: theme.created_at,
+      updatedAt: theme.updated_at
+    }));
+    
+    res.json({
+      success: true,
+      themes,
+      activeThemeId: themes.find(t => t.role === 'main')?.id
+    });
+  } catch (error) {
+    console.error('❌ Error fetching themes:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/theme/client/:clientKey
  * Get theme data by clientKey (no shopDomain needed)
  */
