@@ -168,6 +168,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
     }
   }, [sessionData?.shopDomain, config?.shopDomain, selectedThemeId]);
 
+  // Auto-fetch available themes when theme name is Unknown
+  useEffect(() => {
+    if (themeStatus?.themeName === 'Unknown' && themeStatus?.themeId && availableThemes.length === 0) {
+      fetchAvailableThemes();
+    }
+  }, [themeStatus?.themeName, themeStatus?.themeId, availableThemes.length, fetchAvailableThemes]);
+
   // Stats data - use real product count
   const statsData = [
     { name: 'Mon', activeUsers: 400, installs: 24 },
