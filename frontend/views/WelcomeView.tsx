@@ -6,10 +6,11 @@ import { AppConfig, AppEnvironment } from '../types';
 interface WelcomeViewProps {
   onStartNew: () => void;
   onConnectExisting: (configs: Record<string, AppConfig>) => void;
+  onLogin: () => void;
   logoUrl: string;
 }
 
-const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartNew, onConnectExisting, logoUrl }) => {
+const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartNew, onConnectExisting, onLogin, logoUrl }) => {
   const [mode, setMode] = useState<'initial' | 'select' | 'existing'>('initial');
   const [clientKey, setClientKey] = useState('');
   const [loading, setLoading] = useState(false);
@@ -131,14 +132,14 @@ const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartNew, onConnectExisting
           </button>
 
           <button 
-            onClick={() => setMode('existing')}
+            onClick={onLogin}
             className="flex flex-col items-center justify-center p-6 bg-white border-2 border-gray-100 hover:border-blue-500 rounded-xl shadow-sm hover:shadow-md transition-all group"
           >
              <div className="h-12 w-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-500 group-hover:text-white transition-colors">
                <UserCheck size={24} />
              </div>
              <h3 className="font-bold text-gray-900">Existing User</h3>
-             <p className="text-xs text-gray-500 mt-1">I have a Client Key</p>
+             <p className="text-xs text-gray-500 mt-1">Login with Shopify credentials</p>
           </button>
           
           <div className="col-span-1 md:col-span-2 mt-4">
