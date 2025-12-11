@@ -120,12 +120,12 @@ const App: React.FC = () => {
   };
 
   const handleNewStart = () => {
-    // Go to login view - users need to authenticate with Shopify first
+    // Go to configuration view for new users
     setAppConfigs({
       [AppEnvironment.DEV]: { ...defaultConfig, environment: AppEnvironment.DEV },
       [AppEnvironment.PROD]: { ...defaultConfig, environment: AppEnvironment.PROD }
     });
-    setCurrentView(AppView.LOGIN);
+    setCurrentView(AppView.CONFIGURATION);
   };
 
   const handleExistingConnect = (configs: Record<string, AppConfig>) => {
@@ -208,7 +208,6 @@ const App: React.FC = () => {
             logoUrl={initialConfig.logoUrl} 
             onStartNew={handleNewStart}
             onConnectExisting={handleExistingConnect}
-            onLogin={() => setCurrentView(AppView.LOGIN)}
           />
         );
       case AppView.LOGIN:
