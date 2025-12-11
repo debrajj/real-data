@@ -5,14 +5,8 @@
 
 const API_BASE = '/api';
 
-// Session token storage - initialize from localStorage immediately
-let sessionToken: string | null = (() => {
-  try {
-    return localStorage.getItem('session_token');
-  } catch {
-    return null;
-  }
-})();
+// Session token storage
+let sessionToken: string | null = null;
 
 // Set session token (call after login)
 export function setSessionToken(token: string | null) {
@@ -24,17 +18,18 @@ export function setSessionToken(token: string | null) {
   }
 }
 
-// Get session token
+// Get session token - ALWAYS read from localStorage to handle page refresh
 export function getSessionToken(): string | null {
-  // Always try to get from localStorage first to handle page refresh
-  if (!sessionToken) {
-    try {
-      sessionToken = localStorage.getItem('session_token');
-    } catch {
-      // localStorage not available
+  try {
+    // Always read from localStorage to ensure we get the latest value after refresh
+    const storedToken = localStorage.getItem('session_token');
+    if (storedToken) {
+      sessionToken = storedToken;
     }
+    return sessionToken;
+  } catch {
+    return sessionToken;
   }
-  return sessionToken;
 }
 
 // Clear session

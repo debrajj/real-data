@@ -45,16 +45,23 @@ const App: React.FC = () => {
       // Check if we have a stored session token (either from session_data or session_token)
       const storedSession = sessionAPI.getStoredSession();
       const hasToken = sessionAPI.isLoggedIn();
+      const rawToken = localStorage.getItem('session_token');
       
-      if (storedSession || hasToken) {
+      console.log('🔍 Session check - storedSession:', !!storedSession);
+      console.log('🔍 Session check - hasToken:', hasToken);
+      console.log('🔍 Session check - rawToken in localStorage:', !!rawToken);
+      
+      if (storedSession || hasToken || rawToken) {
         // Validate the session with the server
+        console.log('🔍 Calling validate API...');
         const validation = await sessionAPI.validate();
+        console.log('🔍 Validate result:', validation);
         
         if (validation.valid && validation.session) {
           console.log('✅ Session restored:', validation.session.shopInfo?.name);
           
           // Get token from storage
-          const token = storedSession?.token || localStorage.getItem('session_token') || '';
+          const token = storedSession?.token || rawToken || '';
           
           const restoredSession: SessionData = {
             token,
@@ -73,11 +80,12 @@ const App: React.FC = () => {
           setCurrentView(AppView.DASHBOARD);
         } else {
           // Invalid session, clear it
-          console.log('❌ Session invalid, clearing...');
+          console.log('❌ Session invalid, validation result:', validation);
           clearSession();
           setCurrentView(AppView.WELCOME);
         }
       } else {
+        console.log('🔍 No session found, showing welcome');
         setCurrentView(AppView.WELCOME);
       }
     } catch (error) {
