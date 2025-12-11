@@ -5,8 +5,14 @@
 
 const API_BASE = '/api';
 
-// Session token storage
-let sessionToken: string | null = null;
+// Session token storage - initialize from localStorage immediately
+let sessionToken: string | null = (() => {
+  try {
+    return localStorage.getItem('session_token');
+  } catch {
+    return null;
+  }
+})();
 
 // Set session token (call after login)
 export function setSessionToken(token: string | null) {
@@ -20,8 +26,13 @@ export function setSessionToken(token: string | null) {
 
 // Get session token
 export function getSessionToken(): string | null {
+  // Always try to get from localStorage first to handle page refresh
   if (!sessionToken) {
-    sessionToken = localStorage.getItem('session_token');
+    try {
+      sessionToken = localStorage.getItem('session_token');
+    } catch {
+      // localStorage not available
+    }
   }
   return sessionToken;
 }
@@ -494,15 +505,32 @@ export const sessionAPI = {
     };
   }> => {
     try {
+      const token = getSessionToken();
+      console.log('🔍 Validating session, token exists:', !!token);
+      
+      if (!token) {
+        console.log('❌ No token found in storage');
+        return { valid: false };
+      }
+      
       const response = await fetch(`${API_BASE}/session/validate`, {
         credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${getSessionToken()}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
+      
       const data = await response.json();
-      return { valid: data.valid, session: data.session };
-    } catch {
+      console.log('🔍 Validate response:', data);
+      
+      if (data.valid && data.session) {
+        return { valid: true, session: data.session };
+      }
+      
+      return { valid: false };
+    } catch (error) {
+      console.error('❌ Validate error:', error);
       return { valid: false };
     }
   },

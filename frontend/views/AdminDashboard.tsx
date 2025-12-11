@@ -48,12 +48,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
   const [themeData, setThemeData] = useState<ThemeData | null>(null);
   const [loading, setLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
-  const [themeStatus, setThemeStatus] = useState<{ synced: boolean; version?: number; lastSync?: string; componentsCount?: number } | null>(null);
+  const [themeStatus, setThemeStatus] = useState<{ synced: boolean; version?: number; lastSync?: string; componentsCount?: number; themeName?: string; themeId?: string } | null>(null);
   
   // Available themes from Shopify
   const [availableThemes, setAvailableThemes] = useState<ShopifyTheme[]>([]);
   const [selectedThemeId, setSelectedThemeId] = useState<string>('');
   const [loadingThemes, setLoadingThemes] = useState(false);
+  const [syncingThemeName, setSyncingThemeName] = useState<string>('');
   
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
@@ -110,6 +111,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
           componentsCount: response.data.theme?.components?.length || 0,
           version: response.data.theme?.version,
           lastSync: response.data.theme?.updatedAt,
+          themeName: response.data.theme?.themeName,
+          themeId: response.data.theme?.themeId,
         });
         
         if (response.data.theme?.updatedAt) {
@@ -299,13 +302,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
   const handleThemeSync = async () => {
     if (!selectedThemeId) return;
     
+    // Get the theme name for display
+    const selectedTheme = availableThemes.find(t => t.id === selectedThemeId);
+    setSyncingThemeName(selectedTheme?.name || selectedThemeId);
+    
     setIsSyncing(true);
     setDataError(null);
     const clientKey = getClientKey();
     const shopDomain = sessionData?.shopDomain || config?.shopDomain;
     
     try {
-      console.log(`Syncing theme ${selectedThemeId} from ${shopDomain}`);
+      console.log(`Syncing theme ${selectedThemeId} (${selectedTheme?.name}) from ${shopDomain}`);
       
       // Sync the selected theme
       await themeAPI.sync(shopDomain, selectedThemeId);
@@ -328,6 +335,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
             componentsCount: response.data.theme?.components?.length || 0,
             version: response.data.theme?.version,
             lastSync: response.data.theme?.updatedAt,
+            themeName: response.data.theme?.themeName,
+            themeId: response.data.theme?.themeId,
           });
         }
       }
@@ -338,6 +347,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
       setDataError(`Theme sync failed: ${error.message}`);
     } finally {
       setIsSyncing(false);
+      setSyncingThemeName('');
     }
   };
 
@@ -711,8 +721,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
          </div>
 
          <div className="p-8">
+            {/* Current Synced Theme Info */}
             {themeStatus && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                {themeStatus.themeId && (
+                  <div className="mb-3 pb-3 border-b border-gray-200">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Currently Synced Theme</span>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                      {/* Try to get name from available themes if stored name is Unknown */}
+                      {themeStatus.themeName && themeStatus.themeName !== 'Unknown' 
+                        ? themeStatus.themeName 
+                        : availableThemes.find(t => t.id === themeStatus.themeId)?.name || themeStatus.themeName || 'Unknown'}
+                    </p>
+                    <span className="text-xs text-gray-400">ID: {themeStatus.themeId}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Status:</span>
@@ -729,6 +752,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ configs, onLogout, sess
                   <div>
                     <span className="text-gray-500">Last Sync:</span>
                     <span className="ml-2 font-medium">{themeStatus.lastSync ? new Date(themeStatus.lastSync).toLocaleString() : 'Never'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Syncing Progress Indicator */}
+            {isSyncing && syncingThemeName && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center">
+                  <Loader2 className="animate-spin mr-3 text-blue-600" size={20} />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Syncing Theme...</p>
+                    <p className="text-xs text-blue-700 mt-0.5">Fetching data from: <strong>{syncingThemeName}</strong></p>
                   </div>
                 </div>
               </div>

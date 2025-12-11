@@ -65,12 +65,39 @@ async function handleThemeUpdate(shopDomain, themeId, clientKey = null, accessTo
     
     // Get theme ID - prioritize: provided > env variable > active theme
     let activeThemeId = themeId || process.env.SHOPIFY_THEME_ID;
-    if (!activeThemeId) {
-      const activeTheme = await shopifyAPI.getActiveTheme();
-      activeThemeId = activeTheme.id.toString();
-      console.log(`📌 Active theme ID: ${activeThemeId}`);
-    } else {
-      console.log(`📌 Using theme ID: ${activeThemeId}`);
+    let themeName = 'Unknown';
+    
+    // Fetch all themes to get the name
+    const axios = require('axios');
+    try {
+      const themesResponse = await axios.get(
+        `https://${shopDomain}/admin/api/2024-01/themes.json`,
+        { headers: { 'X-Shopify-Access-Token': shopAccessToken } }
+      );
+      const themes = themesResponse.data.themes || [];
+      
+      if (!activeThemeId) {
+        // Get active theme
+        const activeTheme = themes.find(t => t.role === 'main');
+        if (activeTheme) {
+          activeThemeId = activeTheme.id.toString();
+          themeName = activeTheme.name;
+        }
+      } else {
+        // Find the theme by ID
+        const selectedTheme = themes.find(t => t.id.toString() === activeThemeId.toString());
+        if (selectedTheme) {
+          themeName = selectedTheme.name;
+        }
+      }
+      console.log(`📌 Theme: ${themeName} (ID: ${activeThemeId})`);
+    } catch (error) {
+      console.warn('⚠️ Could not fetch theme list:', error.message);
+      if (!activeThemeId) {
+        const activeTheme = await shopifyAPI.getActiveTheme();
+        activeThemeId = activeTheme.id.toString();
+        themeName = activeTheme.name || 'Unknown';
+      }
     }
 
     // Fetch settings_data.json
@@ -300,7 +327,7 @@ async function handleThemeUpdate(shopDomain, themeId, clientKey = null, accessTo
       shopDomain,
       storeName: 'kidsszone',
       themeId: activeThemeId,
-      themeName: settingsData.current?.name || 'Unknown',
+      themeName: themeName, // Use the actual theme name from Shopify
       components: fixedComponents, // Home page components
       pages: fixedPages, // All page templates
       theme: fixedTheme, // Theme settings (colors, typography, etc.)

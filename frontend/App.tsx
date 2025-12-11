@@ -42,27 +42,38 @@ const App: React.FC = () => {
 
   const checkExistingSession = async () => {
     try {
-      // Check if we have a stored session
+      // Check if we have a stored session token (either from session_data or session_token)
       const storedSession = sessionAPI.getStoredSession();
+      const hasToken = sessionAPI.isLoggedIn();
       
-      if (storedSession) {
+      if (storedSession || hasToken) {
         // Validate the session with the server
         const validation = await sessionAPI.validate();
         
         if (validation.valid && validation.session) {
           console.log('✅ Session restored:', validation.session.shopInfo?.name);
-          setSessionData({
-            token: storedSession.token,
+          
+          // Get token from storage
+          const token = storedSession?.token || localStorage.getItem('session_token') || '';
+          
+          const restoredSession: SessionData = {
+            token,
             clientKey: validation.session.clientKey,
             shopDomain: validation.session.shopDomain,
             shopInfo: validation.session.shopInfo,
-          });
+          };
+          
+          setSessionData(restoredSession);
+          
+          // Re-save session data to ensure it's complete
+          localStorage.setItem('session_data', JSON.stringify(restoredSession));
           
           // Update configs from session
           updateConfigsFromSession(validation.session);
           setCurrentView(AppView.DASHBOARD);
         } else {
           // Invalid session, clear it
+          console.log('❌ Session invalid, clearing...');
           clearSession();
           setCurrentView(AppView.WELCOME);
         }
