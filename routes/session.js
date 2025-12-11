@@ -302,7 +302,12 @@ router.get('/validate', async (req, res) => {
                          req.headers.authorization?.replace('Bearer ', '') ||
                          req.query.token;
 
+    console.log('🔍 Validate request - Token from cookie:', !!req.cookies?.session_token);
+    console.log('🔍 Validate request - Token from header:', !!req.headers.authorization);
+    console.log('🔍 Validate request - Token exists:', !!sessionToken);
+
     if (!sessionToken) {
+      console.log('❌ No session token provided');
       return res.json({
         success: true,
         valid: false,
@@ -311,8 +316,10 @@ router.get('/validate', async (req, res) => {
     }
 
     const session = await sessionService.validateSession(sessionToken);
+    console.log('🔍 Session lookup result:', session ? 'Found' : 'Not found');
 
     if (!session) {
+      console.log('❌ Session not found or inactive for token:', sessionToken.substring(0, 10) + '...');
       return res.json({
         success: true,
         valid: false,
@@ -320,6 +327,7 @@ router.get('/validate', async (req, res) => {
       });
     }
 
+    console.log('✅ Session valid for:', session.shopDomain);
     res.json({
       success: true,
       valid: true,

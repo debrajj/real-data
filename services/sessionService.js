@@ -109,14 +109,29 @@ class SessionService {
    * Validate session token and return session data
    */
   async validateSession(sessionToken) {
-    if (!sessionToken) return null;
+    if (!sessionToken) {
+      console.log('❌ validateSession: No token provided');
+      return null;
+    }
 
+    console.log('🔍 validateSession: Looking for token:', sessionToken.substring(0, 10) + '...');
+    
     const session = await Session.findOne({ 
       sessionToken, 
       isActive: true 
     });
 
-    if (!session) return null;
+    if (!session) {
+      console.log('❌ validateSession: Session not found in database');
+      // Check if session exists but is inactive
+      const inactiveSession = await Session.findOne({ sessionToken });
+      if (inactiveSession) {
+        console.log('❌ validateSession: Session exists but isActive =', inactiveSession.isActive);
+      }
+      return null;
+    }
+
+    console.log('✅ validateSession: Found session for', session.shopDomain);
 
     // Update last activity
     session.lastActivity = new Date();
