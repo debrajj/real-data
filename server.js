@@ -99,9 +99,13 @@ const startServer = async () => {
     await connectDB();
     console.log('✅ MongoDB connected');
 
-    // Initialize change stream
-    initializeChangeStream();
-    console.log('✅ Change stream initialized');
+    // Initialize change stream (only if enabled - requires MongoDB replica set)
+    if (process.env.ENABLE_CHANGE_STREAMS === 'true') {
+      initializeChangeStream();
+      console.log('✅ Change stream initialized');
+    } else {
+      console.log('ℹ️ Change streams disabled (set ENABLE_CHANGE_STREAMS=true to enable)');
+    }
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
